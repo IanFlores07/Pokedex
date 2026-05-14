@@ -1,0 +1,117 @@
+/* --- CONFIGURACIÓN DE COLORES Y VARIABLES --- */
+:root {
+    --pkm-red: #cc0000;       /* Rojo Charizard */
+    --pkm-blue: #3355ff;      /* Azul logo */
+    --pkm-yellow: #ffcb05;    /* Amarillo logo */
+    --pkm-green: #4dad5b;     /* Verde Esmeralda */
+    --pkm-purple: #9b59b6;    /* Morado Master Ball */
+    
+    --bg-dark: #1a1a1a;       /* Fondo oscuro */
+    --border-color: #313131;  /* Borde pixel */
+    
+    --font-pixel: 'Press Start 2P', cursive;
+}
+
+/* --- ESTILO BASE --- */
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: var(--font-pixel), sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    image-rendering: pixelated;
+}
+
+.menu-wrapper {
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    padding: 20px;
+}
+
+/* --- DECORACIÓN POKÉDEX --- */
+.pokedex-light {
+    width: 50px;
+    height: 50px;
+    background: radial-gradient(circle, #00f2ff, #0055ff);
+    border: 5px solid white;
+    border-radius: 50%;
+    margin: 0 auto 30px;
+    box-shadow: 0 0 20px #0055ff;
+}
+
+/* --- LOGO ESTILO POKÉMON --- */
+.pixel-logo {
+    font-size: 1.8rem;
+    color: var(--pkm-yellow);
+    text-shadow: 
+        -3px -3px 0 var(--pkm-blue),  
+         3px -3px 0 var(--pkm-blue),
+        -3px  3px 0 var(--pkm-blue),
+         3px  3px 0 var(--pkm-blue),
+         5px  5px 0 rgba(0,0,0,0.5);
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+.subtitle {
+    font-size: 0.6rem;
+    color: #888;
+    margin-bottom: 40px;
+    letter-spacing: 1px;
+}
+
+/* --- BOTONES (CARDS) --- */
+.games-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.game-card {
+    width: 100%;
+    padding: 25px 20px;
+    border: 4px solid var(--border-color);
+    border-radius: 0; /* Estilo retro cuadrado */
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-pixel);
+    font-size: 0.7rem;
+    color: white;
+    transition: 0.1s;
+    box-shadow: inset -5px -5px 0px rgba(0,0,0,0.4);
+    text-transform: uppercase;
+}
+
+/* Colores de botones */
+.red { background-color: var(--pkm-red); }
+.green { background-color: var(--pkm-green); }
+.purple { background-color: var(--pkm-purple); }
+
+.game-card:hover {
+    transform: scale(1.03);
+    filter: brightness(1.2);
+}
+
+.game-card:active {
+    transform: scale(0.97);
+    box-shadow: inset 5px 5px 0px rgba(0,0,0,0.5);
+}
+
+.game-icon {
+    font-size: 1.2rem;
+}
+
+/* --- FOOTER --- */
+.main-footer {
+    margin-top: 50px;
+    font-size: 0.5rem;
+    color: #555;
+    line-height: 1.8;
+}

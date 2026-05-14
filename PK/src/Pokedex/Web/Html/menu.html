@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon - Selección de Juego</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Css/menu.css"> 
+</head>
+<body>
+
+    <div class="menu-wrapper">
+        <header class="main-header">
+            <h1 class="pixel-logo">MODOS DE<span> JUEGO</span></h1>
+            <p class="subtitle">ELIGE TU PRÓXIMO RETO</p>
+        </header>
+
+        <main class="games-grid">
+            <button class="game-card blue" onclick="alert('Adivina Pokémon: Próximamente')">
+                <span class="game-title">¿Cuál es ese Pokémon?</span>
+                <span class="game-icon">❓</span>
+            </button>
+            
+            <button class="game-card dark-blue" onclick="alert('Anagrama: Próximamente')">
+                <span class="game-title">Anagrama</span>
+                <span class="game-icon">🔠</span>
+            </button>
+
+            <button class="game-card purple" onclick="alert('Tipos: Próximamente')">
+                <span class="game-title">¿Cuál es su tipo?</span>
+                <span class="game-icon">🔥</span>
+            </button>
+
+            <button class="game-card red" onclick="location.href='peso.html'">
+                <span class="game-title">El Peso Justo</span>
+                <span class="game-icon">⚖️</span>
+            </button>
+
+            <button class="game-card full-width green" onclick="location.href='../Html/index.html'">
+                <span class="game-title">VOLVER AL INICIO</span>
+                <span class="game-icon">🏠</span>
+            </button>
+        </main>
+
+        <footer class="main-footer">
+            <p>SELECCIÓN DE PROTOCOLO DE ENTRENAMIENTO</p>
+        </footer>
+    </div>
+
+</body>
+</html>

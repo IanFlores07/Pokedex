@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon - Inicio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Css/index.css">
+</head>
+<body>
+
+    <div class="menu-wrapper">
+    <div class="pokedex-light"></div>
+    <h1 class="pixel-logo">POKÉ<span>DUELO</span></h1>
+
+        <main class="games-grid">
+            <button class="game-card red" onclick="location.href='pokedex.html'">
+                <span>1 - VER POKÉDEX</span>
+                <span>📕</span>
+            </button>
+
+            <button class="game-card green" onclick="location.href='menu.html'">
+                <span>2 - MINIJUEGOS</span>
+                <span>🎮</span>
+            </button>
+
+            <button class="game-card purple" onclick="location.href='curiosidades.html'">
+                <span>3 - CURIOSIDADES</span>
+                <span>✨</span>
+            </button>
+        </main>
+    </div>
+
+<script>
+    function abrirCuriosidades() {
+        alert("¡Próximamente! Datos curiosos sobre el mundo Pokémon.");
+        // Cuando tengas la página lista, usa: 
+        // window.location.href = 'Html/curiosidades.html';
+    }
+</script>
+
+    <script>
+        function navegar(destino) {
+            if (destino === 'minijuegos') {
+                window.location.href = "Html/menu.html"; 
+            } else if (destino === 'pokedex') {
+                alert("Abriendo la Pokédex...");
+                // window.location.href = "Html/pokedex_lista.html";
+            }
+        }
+    </script>
+</body>
+</html>

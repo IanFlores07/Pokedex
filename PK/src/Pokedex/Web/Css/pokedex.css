@@ -1,0 +1,210 @@
+:root {
+    --pkd-red: #e30613;
+    --screen-blue: #98cbff;
+    --font-pixel: 'Press Start 2P', cursive;
+}
+
+body {
+    background-color: #1a1a1a;
+    font-family: var(--font-pixel);
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh; margin: 0; 
+    overflow: hidden; 
+}
+
+.pokedex-frame {
+    background-color: var(--pkd-red);
+    width: 880px; height: 740px; padding: 20px;
+    border: 6px solid #000; border-radius: 15px 15px 15px 60px;
+    box-shadow: 10px 10px 0px #000;
+    display: flex; flex-direction: column; box-sizing: border-box;
+    transform: scale(0.85);
+    overflow: hidden; 
+}
+
+.pokedex-header { display: flex; align-items: center; gap: 15px; margin-bottom: 10px; }
+.blue-sensor {
+    width: 45px; height: 45px; border-radius: 50%;
+    background: radial-gradient(circle, #00f2ff, #0055ff); border: 4px solid #fff;
+}
+
+.gen-filter { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+.gen-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.gen-row button { 
+    background: #333; color: #fff; border: 2px solid #000; padding: 12px 0; 
+    font-family: inherit; font-size: 0.5rem; cursor: pointer; 
+}
+
+.search-row { display: flex; gap: 6px; }
+.btn-all { 
+    background: #000; color: #fff; border: 2px solid #333; padding: 12px; 
+    font-family: inherit; font-size: 0.5rem; cursor: pointer; width: 160px;
+}
+#poke-search { 
+    flex: 1; background: #ffcbd1; border: 2px solid #000; padding: 12px; 
+    font-family: inherit; font-size: 0.6rem; 
+}
+
+.pokedex-screen {
+    background-color: var(--screen-blue); border: 6px solid #333; border-radius: 5px;
+    flex-grow: 1; 
+    overflow-y: auto; 
+    overflow-x: hidden; 
+    padding: 15px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-content: start;
+}
+
+.pokedex-screen::-webkit-scrollbar { width: 10px; }
+.pokedex-screen::-webkit-scrollbar-track { background: transparent; }
+.pokedex-screen::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
+
+.gen-header-fixed {
+    grid-column: span 3; background: #1a1a1a; padding: 12px;
+    font-size: 0.55rem; text-align: center; border: 3px solid #000; margin: 10px 0;
+    color: #fff; text-shadow: 1px 1px 1px #000;
+}
+
+.entry {
+    background: rgba(255,255,255,0.4); border-radius: 4px; border: 2px solid rgba(0,0,0,0.1);
+    text-align: center; font-size: 0.55rem; cursor: pointer; height: 60px;
+    display: flex; align-items: center; justify-content: center; padding: 5px;
+}
+
+.pokedex-view-detail { 
+    grid-column: span 3; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px;
+}
+
+.view-main { display: flex; gap: 15px; }
+.view-left { width: 170px; text-align: center; }
+.artwork-img { width: 140px; height: 140px; object-fit: contain; }
+.big-id { font-size: 1rem; margin: 8px 0; }
+.btn-3d { background: #ffcc00; border: 2px solid #000; font-family: inherit; font-size: 0.5rem; cursor: pointer; width: 100%; padding: 8px; }
+
+.view-right { flex: 1; display: flex; flex-direction: column; gap: 5px;}
+
+.header-line { 
+    display: flex; 
+    flex-direction: row; 
+    align-items: center; 
+    margin: 0; 
+}
+
+.poke-name { 
+    font-size: 1.6rem; 
+    color: #000; 
+    text-shadow: 1px 1px 0px #fff;
+    white-space: nowrap;
+}
+
+.gen-tag {
+    margin-left: auto; 
+    font-size: 0.6rem;
+    color: #fff;
+    padding: 6px 10px;
+    background: #1a1a1a;
+    border: 2px solid #000;
+    text-shadow: 1px 1px 2px #000;
+    white-space: nowrap;
+}
+
+.divider { border: 1px solid #333; margin: 5px 0; }
+
+.stats-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 6px; 
+    margin-bottom: 5px;
+}
+
+.stat-item { 
+    background: #333; 
+    color: #fff; 
+    padding: 7px; 
+    border: 2px solid #000;
+    border-radius: 4px; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    font-size: 0.55rem; 
+}
+
+.stat-type {
+    text-shadow: 1px 1px 2px #000;
+}
+
+.stat-item span { color: #fff; }
+
+.view-bottom { display: flex; gap: 15px; height: 110px; margin-top: 5px; }
+.nav-controls { width: 170px; display: flex; flex-direction: column; gap: 5px; }
+.nav-arrows { display: flex; gap: 5px; }
+.nav-arrows button { flex: 1; background: #000; color: #fff; padding: 10px; font-family: inherit; cursor: pointer; }
+.btn-list { background: #000; color: #fff; padding: 10px; font-family: inherit; cursor: pointer; font-size: 0.5rem; }
+
+.desc-box {
+    flex: 1; background: rgba(255,255,255,0.25); padding: 10px 15px;
+    border-left: 5px solid #333; border-right: 5px solid #333;
+    font-size: 0.75rem; line-height: 1.4; color: #000;
+    overflow-y: auto;
+}
+
+.blink { animation: bl 1s infinite; text-align: center; }
+@keyframes bl { 50% { opacity: 0; } }
+.btn-menu-back { background: #000; color: #fff; padding: 12px 20px; font-family: inherit; cursor: pointer; border: none; margin-top: 10px; }
+
+.img-box {
+    width: 100%;
+    height: 200px; 
+    background-color: #5e9ddb;
+    border: none !important; 
+    border-radius: 20px; 
+    overflow: hidden !important; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+model-viewer {
+    width: 100% !important;
+    height: 100% !important;
+    background-color: transparent !important;
+    --poster-color: transparent !important;
+    outline: none;
+}
+
+/* Evitar scroll en la pantalla azul */
+.pokedex-screen {
+    overflow: hidden !important; /* Adiós barra de scroll */
+}
+
+/* Ajuste del contenedor de detalle para que no se sobrepongan las cosas */
+.pokedex-view-detail {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 5px;
+}
+
+/* Caja de descripción: un poco más pequeña para asegurar que no empuje todo */
+.desc-box {
+    flex: 1;
+    background: rgba(255,255,255,0.2);
+    padding: 10px;
+    border-left: 4px solid #333;
+    border-right: 4px solid #333;
+    font-size: 0.65rem; /* Ajustado para que quepa */
+    line-height: 1.3;
+    color: #000;
+    margin-top: 2px;
+    overflow-y: auto; /* Solo scroll si el texto es larguísimo */
+}
+
+.view-bottom {
+    display: flex;
+    gap: 15px;
+    height: 110px; /* Altura fija para que no crezca */
+    align-items: stretch;
+}
