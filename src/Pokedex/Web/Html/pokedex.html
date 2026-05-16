@@ -92,46 +92,37 @@
         async function verDetalle(id) {
             if (id < 1) return;
             
-            // Guardamos el ID actual para que los botones de navegación funcionen
             const screen = document.getElementById('pokedex-screen');
                 
-            // Pantalla de carga
             screen.innerHTML = `
                 <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; grid-column: span 3;">
                     <p class="blink">CONECTANDO...</p>
                 </div>`;
 
             try {
-                // 1. Obtener datos de la API
                 const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
                 const data = await res.json();
                 const resSpec = await fetch(data.species.url);
                 const dataSpec = await resSpec.json();
 
-                // 2. Lógica de Generación y Juegos
                 const pokeGen = obtenerGenPorID(id);
                 const nombresJuegosPintados = pintarJuegos(pokeGen);
                 
-                // 3. Obtener descripción en español
-                const config = infoGens[pokeGen];
                 let entryEs = dataSpec.flavor_text_entries.find(e => 
-                    e.language.name === 'es' && config.s.includes(e.version.name)
+                    e.language.name === 'es' && infoGens[pokeGen].s.includes(e.version.name)
                 );
                 if (!entryEs) entryEs = dataSpec.flavor_text_entries.find(e => e.language.name === 'es');
                 let desc = entryEs ? entryEs.flavor_text.replace(/\f/g, ' ').replace(/\n/g, ' ') : "Descripción no disponible.";
 
-                // 4. Tipos
                 const tiposHtml = data.types.map((t, index) => {
                     const nombreTipo = tiposTraducidos[t.type.name] || t.type.name.toUpperCase();
                     const colorTipo = coloresTipos[t.type.name] || '#777';
                     return `<div class="stat-item stat-type" style="background:${colorTipo}; color:white; border:none;">TIPO ${index + 1} <span>${nombreTipo}</span></div>`;
                 }).join("");
 
-                // 5. RUTAS DE ARCHIVOS
                 const modelSource = `../../../../assets-main/models/opt/regular/${id}.glb`;
                 const urlPoster = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
 
-                // 6. Contenido Visual
                 const contenidoImagen = vista3D 
                 ? `<model-viewer 
                     id="pokedex-3d-viewer"
@@ -142,38 +133,32 @@
                     auto-rotate 
                     camera-controls 
                     interaction-prompt="none" 
-
                     field-of-view="25deg"
-
                     exposure="0.7" 
                     shadow-intensity="1" 
                     shadow-softness="1"
-                    environment-image="" 
-                    skybox-image="" 
-
                     style="width: 100%; height: 100%; display: block;">
                 </model-viewer>`
                 : `<img src="${urlPoster}" class="artwork-img" style="width: 100%; height: 100%; object-fit: contain; display: block;">`;
 
-                // 7. Renderizado final de la estructura
                 screen.innerHTML = `
-                    <div class="pokedex-view-detail" style="height: 100%; display: flex; flex-direction: column; overflow: hidden;">
-                        <div class="view-main" style="display: flex; flex: 1; overflow: hidden;">
-                            <div class="view-left" style="width: 200px; display: flex; flex-direction: column; align-items: center;">
-                                <div class="img-box" style="width: 180px; height: 180px; border: none !important; overflow: hidden !important; border-radius: 20px; background: #87CEEB; position: relative;">
+                    <div class="pokedex-view-detail">
+                        <div class="view-main" style="display: flex; gap: 15px;">
+                            <div class="view-left" style="width: 170px; text-align: center;">
+                                <div class="img-box">
                                     ${contenidoImagen}
                                 </div>
-                                <p class="big-id" style="margin: 10px 0; font-weight: bold;">#${id.toString().padStart(3,'0')}</p>
+                                <p class="big-id">#${id.toString().padStart(3,'0')}</p>
                                 <button class="btn-3d" onclick="toggleVista(${id})">${vista3D ? 'VER ARTE' : 'VER 3D'}</button>
                             </div>
 
-                            <div class="view-right" style="flex: 1; padding-left: 10px;">
-                                <h2 class="header-line" style="margin: 0; display: flex; justify-content: space-between; align-items: center;">
-                                    <span class="poke-name" style="font-size: 1.5rem;">${data.name.toUpperCase()}</span>
-                                    <div class="gen-tag" style="font-size: 0.7rem;">GEN ${pokeGen}: ${nombresJuegosPintados}</div>
+                            <div class="view-right">
+                                <h2 class="header-line">
+                                    <span class="poke-name">${data.name.toUpperCase()}</span>
+                                    <div class="gen-tag">GEN ${pokeGen}: ${nombresJuegosPintados}</div>
                                 </h2>
-                                <hr style="border: 1px solid #333; margin: 5px 0;">
-                                <div class="stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                <hr class="divider">
+                                <div class="stats-grid">
                                     <div class="stat-item">PS <span>${data.stats[0].base_stat}</span></div>
                                     <div class="stat-item">AT <span>${data.stats[1].base_stat}</span></div>
                                     <div class="stat-item">DF <span>${data.stats[2].base_stat}</span></div>
@@ -187,21 +172,20 @@
                             </div>
                         </div>
                         
-                        <div class="view-bottom" style="height: 100px; display: flex; align-items: center; gap: 10px; margin-top: 10px; border-top: 2px solid #333; padding-top: 5px;">
-                            <div class="nav-controls" style="display: flex; flex-direction: column; gap: 5px;">
-                                <div class="nav-arrows" style="display: flex; gap: 5px;">
-                                    <button onclick="verDetalle(${id - 1})" style="width: 40px;"><</button>
-                                    <button onclick="verDetalle(${id + 1})" style="width: 40px;">></button>
+                        <div class="view-bottom">
+                            <div class="nav-controls">
+                                <div class="nav-arrows">
+                                    <button onclick="verDetalle(${id - 1})">&lt;</button>
+                                    <button onclick="verDetalle(${id + 1})">&gt;</button>
                                 </div>
                                 <button class="btn-list" onclick="cargarGen(${pokeGen})">LISTA</button>
                             </div>
-                            <div class="desc-box" style="flex: 1; background: #eee; padding: 8px; border-radius: 5px; font-size: 0.8rem; height: 70px; overflow-y: auto; color: #111; border: 1px solid #999;">
+                            <div class="desc-box">
                                 <strong>DESC:</strong> ${desc}
                             </div>
                         </div>
                     </div>`;
 
-                // --- EL FIX: EJECUTAR EL CÓDIGO FUERA DEL HTML ---
                 const viewer = document.getElementById('pokedex-3d-viewer');
                 if (viewer) {
                     viewer.addEventListener('load', () => {
