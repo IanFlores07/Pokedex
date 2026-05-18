@@ -19,18 +19,18 @@
 
         <nav class="gen-filter">
             <div class="gen-row">
-                <button onclick="cargarGen(1)">G1</button>
-                <button onclick="cargarGen(2)">G2</button>
-                <button onclick="cargarGen(3)">G3</button>
-                <button onclick="cargarGen(4)">G4</button>
-                <button onclick="cargarGen(5)">G5</button>
+                <button onclick="cargarGen(1)">GEN 1</button>
+                <button onclick="cargarGen(2)">GEN 2</button>
+                <button onclick="cargarGen(3)">GEN 3</button>
+                <button onclick="cargarGen(4)">GEN 4</button>
+                <button onclick="cargarGen(5)">GEN 5</button>
             </div>
             <div class="gen-row">
-                <button onclick="cargarGen(6)">G6</button>
-                <button onclick="cargarGen(7)">G7</button>
-                <button onclick="cargarGen(8)">G8</button>
-                <button onclick="cargarGen(9)">G9</button>
-                <button onclick="cargarGen(10)">G10</button>
+                <button onclick="cargarGen(6)">GEN 6</button>
+                <button onclick="cargarGen(7)">GEN 7</button>
+                <button onclick="cargarGen(8)">GEN 8</button>
+                <button onclick="cargarGen(9)">GEN 9</button>
+                <button onclick="cargarGen(10)">GEN 10</button>
             </div>
             <div class="search-row">
                 <button onclick="cargarGen(0)" class="btn-all">VER TODAS</button>
@@ -45,6 +45,14 @@
         <footer class="pokedex-footer">
             <button class="btn-menu-back" onclick="location.href='../Html/index.html'">VOLVER AL MENÚ</button>
         </footer>
+    </div>
+
+    <div id="pop-up-3d" class="modal-3d">
+        <div class="contenido-modal">
+            <span id="btn-cerrar-3d" class="cerrar">&times;</span>
+            <div id="contenedor-visor-gigante" class="contenedor-visor-gigante">
+                </div>
+        </div>
     </div>
 
     <script>
@@ -123,6 +131,11 @@
                 const modelSource = `../../../../assets-main/models/opt/regular/${id}.glb`;
                 const urlPoster = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
 
+                // El botón de pantalla completa ahora se inyecta directamente dentro de la "img-box" flotando
+                const botonFullScreenHtml = vista3D 
+                ? `<button class="btn-fullscreen" onclick="abrirModal3D('${modelSource}', '${urlPoster}')">⛶</button>` 
+                : '';
+
                 const contenidoImagen = vista3D 
                 ? `<model-viewer 
                     id="pokedex-3d-viewer"
@@ -138,7 +151,7 @@
                     shadow-intensity="1" 
                     shadow-softness="1"
                     style="width: 100%; height: 100%; display: block;">
-                </model-viewer>`
+                </model-viewer>${botonFullScreenHtml}`
                 : `<img src="${urlPoster}" class="artwork-img" style="width: 100%; height: 100%; object-fit: contain; display: block;">`;
 
                 screen.innerHTML = `
@@ -248,6 +261,55 @@
                 }
             }
             screen.innerHTML = html || "<p class='blink'>SIN RESULTADOS</p>";
+        }
+
+        // FUNCIONES PARA CONTROLAR EL POP-UP POP-UP 3D
+        const modal = document.getElementById("pop-up-3d");
+        const btnCerrar = document.getElementById("btn-cerrar-3d");
+        const contenedorGigante = document.getElementById("contenedor-visor-gigante");
+
+        function abrirModal3D(src, poster) {
+            contenedorGigante.innerHTML = `
+                <model-viewer 
+                    id="pokedex-3d-giant-viewer"
+                    src="${src}" 
+                    poster="${poster}" 
+                    autoplay 
+                    animation-name="*" 
+                    auto-rotate 
+                    camera-controls 
+                    interaction-prompt="none" 
+                    field-of-view="20deg"
+                    exposure="0.8" 
+                    shadow-intensity="1" 
+                    shadow-softness="0.5"
+                    style="width: 100%; height: 100%; display: block;">
+                </model-viewer>`;
+            
+            modal.style.display = "block";
+
+            const giantViewer = document.getElementById('pokedex-3d-giant-viewer');
+            if (giantViewer) {
+                giantViewer.addEventListener('load', () => {
+                    const animations = giantViewer.availableAnimations;
+                    if (animations.length > 0) {
+                        giantViewer.animationName = animations[0];
+                        giantViewer.play();
+                    }
+                });
+            }
+        }
+
+        btnCerrar.onclick = function() {
+            modal.style.display = "none";
+            contenedorGigante.innerHTML = "";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+                contenedorGigante.innerHTML = "";
+            }
         }
     </script>
 </body>
