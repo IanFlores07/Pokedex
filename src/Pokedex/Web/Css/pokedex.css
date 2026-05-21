@@ -1,5 +1,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ==========================================================================
+   DISEÑO RETRO GENERAL Y CUSTOM SCROLLBARS (PIXEL STYLE)
+   ========================================================================== */
 body {
     background-color: #1a1a1a;
     font-family: 'Press Start 2P', monospace;
@@ -10,7 +13,26 @@ body {
     padding: 10px;
 }
 
-/* MARCO DE LA POKÉDEX */
+/* Aplicamos estilo pixelado a todos los contenedores con scroll */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+::-webkit-scrollbar-track {
+    background: #000000; /* Fondo negro de la barra */
+    border-left: 3px solid #000000;
+}
+::-webkit-scrollbar-thumb {
+    background: #555555; /* Bloque gris pixelado */
+    border: 3px solid #000000; /* Crea el efecto de recuadro retro */
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #ffcc00; /* Cambia a amarillo pokédex al pasar el ratón */
+}
+
+/* ==========================================================================
+   ESTRUCTURA DE LA POKÉDEX
+   ========================================================================== */
 .pokedex-frame {
     background-color: #e3000f; border: 5px solid #000; border-radius: 14px;
     width: 100%; max-width: 1240px; padding: 20px 20px 75px 20px;
@@ -35,27 +57,52 @@ body {
 }
 .btn-all { background-color: #000; color: #fff; }
 
-/* INPUT BLANCO PURO EXCLUSIVO */
 #poke-search { 
     border: 2px solid #000; padding: 6px; 
     font-family: 'Press Start 2P', monospace; font-size: 0.6rem; 
     width: 180px; background-color: #ffffff !important; color: #000000;
 }
 
-/* PANTALLA PRINCIPAL INTERNA */
 .pokedex-screen {
     background-color: #8cb9f1; border: 4px solid #000;
     border-radius: 6px; height: 520px; padding: 12px; display: flex; flex-direction: row;
 }
 
-/* COLUMNA IZQUIERDA */
 .view-left { width: 28%; display: flex; flex-direction: column; gap: 6px; }
+
+/* CONTENEDOR DE IMAGEN / 3D */
 .img-box {
     background-color: #8cb9f1; border: 3px solid #000; border-radius: 6px;
-    height: 190px; display: flex; justify-content: center; align-items: center; overflow: hidden;
+    height: 190px; display: flex; justify-content: center; align-items: center; 
+    overflow: hidden; position: relative; /* Clave para posicionar el botón interno */
 }
 .img-box img { max-height: 95%; max-width: 95%; object-fit: contain; }
 .img-box model-viewer { width: 100%; height: 100%; }
+
+/* BOTÓN PANTALLA COMPLETA MODIFICADO (FONDO NEGRO, ICONO BLANCO, ESQUINA SUPERIOR DERECHA) */
+.icon-fullscreen-inside {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 10;
+    background-color: #000000 !important; /* Fondo negro absoluto */
+    color: #ffffff !important;           /* Icono blanco */
+    border: 2px solid #000000;           /* Borde nítido */
+    border-radius: 4px;
+    font-size: 0.85rem;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: bold;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+}
+.icon-fullscreen-inside:hover {
+    background-color: #222222 !important;
+    border-color: #ffcc00;
+}
 
 .forms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .btn-form-variant {
@@ -66,34 +113,30 @@ body {
 .big-id { font-size: 1.2rem; text-align: center; color: #000; font-weight: bold; margin: 2px 0; }
 
 .media-toggle-buttons { display: flex; flex-direction: column; gap: 4px; }
-.btn-3d, .btn-fullscreen-3d, .btn-lista, .btn-moves {
+.btn-3d, .btn-lista, .btn-moves {
     background-color: #ffcc00; border: 3px solid #000; font-family: 'Press Start 2P', monospace;
     font-size: 0.6rem; padding: 8px; cursor: pointer; font-weight: bold; text-align: center; color: #000;
 }
-.btn-fullscreen-3d { background-color: #00ff66; }
 .hidden { display: none !important; }
 
 .nav-controls { display: flex; flex-direction: column; gap: 4px; }
 .nav-arrows { display: flex; gap: 4px; }
 .nav-arrows button { flex: 1; background-color: #111; color: #fff; border: 2px solid #000; font-family: 'Press Start 2P', monospace; padding: 6px; cursor: pointer; }
 
-/* CONTENEDOR DINÁMICO MUTABLE */
+/* CONTENEDORES DINÁMICOS */
 .dynamic-zone-wrapper { width: 72%; display: flex; height: 100%; transition: width 0.1s ease; }
 .full-screen-zone { width: 100% !important; }
 
-/* VISTA DE DETALLE INTEGRADA */
 .details-layout { display: flex; width: 100%; height: 100%; }
 .view-center { width: 55%; padding: 0 12px; display: flex; flex-direction: column; gap: 6px; border-right: 3px solid #000; }
 .header-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .poke-name { font-size: 1.1rem; color: #000; text-transform: uppercase; }
 
-/* CONTENEDOR RETRO PARA ETIQUETA DE GENERACIÓN Y JUEGOS CONECTADOS */
 .gen-and-games-container { display: inline-flex; align-items: center; border: 2px solid #000; background-color: #000; font-size: 0.45rem; font-weight: bold; padding: 1px; }
 .gen-pill-label { color: #fff; padding: 2px 4px; }
 .games-bracket { display: inline-flex; gap: 2px; padding: 2px 4px; background-color: #222; }
 .game-word-span { text-transform: uppercase; font-weight: bold; }
 
-/* CUADRÍCULA DE ESTADÍSTICAS EN AZUL CLARO */
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .stat-item { display: flex; border: 2px solid #000; height: 24px; align-items: center; background-color: #bbf3ff; }
 .stat-item span:first-child { background-color: #000; color: #fff; font-size: 0.55rem; padding-left: 4px; width: 45px; height: 100%; display: flex; align-items: center; }
@@ -104,13 +147,12 @@ body {
 .type-box-row .type-label { background-color: #000; color: #fff; padding-left: 4px; width: 55px; height: 100%; display: flex; align-items: center; }
 .type-box-row .type-value { flex-grow: 1; text-align: center; font-weight: bold; height: 100%; display: flex; align-items: center; justify-content: center; color: #fff; text-transform: uppercase; text-shadow: 1px 1px 1px #000; }
 
-/* DESCRIPCIÓN CON COLOR DIFERENTE Y BORDES LATERALEZ GRUESOS */
 .desc-box {
     background-color: #a3cdff; border: 2px solid #000; border-left: 6px solid #000; border-right: 6px solid #000;
     padding: 8px; font-size: 0.55rem; line-height: 1.4; color: #000; height: 110px; overflow-y: auto;
 }
 
-/* CADENA EVOLUTIVA */
+/* SECCIÓN CADENA EVOLUTIVA */
 .view-right-evo { width: 45%; padding-left: 12px; display: flex; flex-direction: column; }
 .evo-title-label { font-size: 0.65rem; text-align: center; margin-bottom: 8px; color: #000; font-weight: bold; }
 .evo-container-scroll { 
@@ -122,12 +164,11 @@ body {
 .evo-column-stack { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .evo-node-wrapper { display: flex; align-items: center; gap: 6px; }
 
-/* ICONOS DE EVOLUCIÓN GRANDES AJUSTADOS */
 .evo-poke { width: 72px; height: 72px; background-color: #8cb9f1; border: 3px solid #000; border-radius: 6px; padding: 2px; cursor: pointer; object-fit: contain; }
 .evo-poke:hover { background-color: #ffcc00; }
 .evo-arrow-side { font-size: 0.9rem; font-weight: bold; color: #000; }
 
-/* REJILLA A PANTALLA COMPLETA TOTAL (DE 3 EN 3) */
+/* SECCIÓN LISTA INTEGRADA */
 .integrated-list-zone { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 4px; }
 .list-scroll-container { flex-grow: 1; overflow-y: auto; }
 .gen-section-header { 
@@ -137,7 +178,6 @@ body {
 .gen-section-header:first-child { margin-top: 0; }
 .gen-section-games-subtitle { font-size: 0.5rem; font-weight: bold; }
 
-/* GRID ESTRICTO DE 3 EN 3 A PANTALLA COMPLETA */
 .grid-pokes-scroll { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
 .grid-item-poke {
     background-color: #c6daf6; border: 3px solid #000; border-radius: 4px;
@@ -147,25 +187,24 @@ body {
 .grid-item-poke:hover { background-color: #ffcc00; }
 .grid-item-poke span { font-size: 0.6rem; color: #000; font-weight: bold; text-transform: uppercase; line-height: 1.4; }
 
-/* DROPDOWN DE GENERACIONES */
+/* MODAL DE GENERACIONES */
 .gens-container-box { background-color: #000; border: 4px solid #000; padding: 8px; position: absolute; top: 60px; right: 20px; z-index: 500; display: flex; flex-direction: column; gap: 6px; }
 .gen-row { display: flex; gap: 6px; }
 .gen-btn-retro { background-color: #ffcc00 !important; color: #000 !important; border: 3px solid #000 !important; font-family: 'Press Start 2P', monospace; font-size: 0.55rem; padding: 6px 10px; cursor: pointer; font-weight: bold; }
 .gen-btn-retro:hover { background-color: #fff !important; color: #000 !important; }
 .collapsed { display: none !important; }
 
-/* PIE DE PÁGINA */
 .pokedex-footer { position: absolute; bottom: 15px; left: 20px; }
 .btn-menu-back { background-color: #000; color: #fff; border: 2px solid #fff; font-family: 'Press Start 2P', monospace; font-size: 0.55rem; padding: 8px 12px; cursor: pointer; }
 
-/* POP-UP GIGANTE 3D (TRANSPARENTE SIN FONDOS BLANCOS) */
+/* MODALES GIGANTES */
 .modal-giant-dark { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.95); z-index: 99999; justify-content: center; align-items: center; }
 .contenido-modal-giant { width: 90vw; height: 90vh; position: relative; display: flex; justify-content: center; align-items: center; }
 .cerrar-giant { position: absolute; top: -10px; right: 0; font-size: 2.5rem; cursor: pointer; font-weight: bold; color: #fff; z-index: 10010; }
 .contenedor-render-giant { width: 100%; height: 100%; }
 .contenedor-render-giant model-viewer { width: 100%; height: 100%; }
 
-/* POP-UP RETRO DE MOVIMIENTOS OSCURECIDO Y AMPLIO */
+/* MODAL MOVIMIENTOS */
 .modal-moves-retro { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 9999; justify-content: center; align-items: center; }
 .contenido-modal-moves { background-color: #222; border: 5px solid #ffcc00; padding: 25px; position: relative; width: 90%; max-width: 800px; box-shadow: 0 0 20px #000; }
 .cerrar-moves { position: absolute; top: 5px; right: 14px; font-size: 1.8rem; cursor: pointer; font-weight: bold; color: #ffcc00; }

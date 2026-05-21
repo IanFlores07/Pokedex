@@ -12,75 +12,23 @@ const typeColors = {
     dark: "#705848", steel: "#B8B8D0", fairy: "#EE99AC"
 };
 
-// Configuración de Juegos por Generación con sus colores individuales nativos mapeados uno a uno
+const typeTranslations = {
+    NORMAL: "NORMAL", FIRE: "FUEGO", WATER: "AGUA", ELECTRIC: "ELÉCTRICO", GRASS: "PLANTA",
+    ICE: "HIELO", FIGHTING: "LUCHA", POISON: "VENENO", GROUND: "TIERRA", FLYING: "VOLADOR",
+    PSYCHIC: "PSÍQUICO", BUG: "BICHO", ROCK: "ROCA", GHOST: "FANTASMA", DRAGON: "DRAGÓN",
+    DARK: "SINIESTRO", STEEL: "ACERO", FAIRY: "HADA"
+};
+
 const genRanges = {
-    1: { 
-        start: 1, end: 151, 
-        games: [
-            { text: "ROJO", color: "#ff1111" },
-            { text: "AZUL", color: "#1155ff" },
-            { text: "AMARILLO", color: "#ffd400" }
-        ]
-    },
-    2: { 
-        start: 152, end: 251, 
-        games: [
-            { text: "ORO", color: "#d4b35e" },
-            { text: "PLATA", color: "#cccccc" },
-            { text: "CRISTAL", color: "#a1e5ff" }
-        ]
-    },
-    3: { 
-        start: 252, end: 386, 
-        games: [
-            { text: "RUBÍ", color: "#ff2244" },
-            { text: "ZAFIRO", color: "#2266ff" },
-            { text: "ESMERALDA", color: "#11cc66" }
-        ]
-    },
-    4: { 
-        start: 387, end: 493, 
-        games: [
-            { text: "DIAMANTE", color: "#aaaaff" },
-            { text: "PERLA", color: "#ffaaaa" },
-            { text: "PLATINO", color: "#999999" }
-        ]
-    },
-    5: { 
-        start: 494, end: 649, 
-        games: [
-            { text: "BLANCO", color: "#ffffff" },
-            { text: "NEGRO", color: "#444444" }
-        ]
-    },
-    6: { 
-        start: 650, end: 721, 
-        games: [
-            { text: "X", color: "#0055ff" },
-            { text: "Y", color: "#ff2233" }
-        ]
-    },
-    7: { 
-        start: 722, end: 809, 
-        games: [
-            { text: "SOL", color: "#ff8811" },
-            { text: "LUNA", color: "#5555ff" }
-        ]
-    },
-    8: { 
-        start: 810, end: 905, 
-        games: [
-            { text: "ESPADA", color: "#00ccee" },
-            { text: "ESCUDO", color: "#ff0066" }
-        ]
-    },
-    9: { 
-        start: 906, end: 1010, 
-        games: [
-            { text: "ESCARLATA", color: "#ff3311" },
-            { text: "PÚRPURA", color: "#aa22ff" }
-        ]
-    }
+    1: { start: 1, end: 151, games: [{ text: "ROJO", color: "#ff1111" }, { text: "AZUL", color: "#1155ff" }, { text: "AMARILLO", color: "#ffd400" }] },
+    2: { start: 152, end: 251, games: [{ text: "ORO", color: "#d4b35e" }, { text: "PLATA", color: "#cccccc" }, { text: "CRISTAL", color: "#a1e5ff" }] },
+    3: { start: 252, end: 386, games: [{ text: "RUBÍ", color: "#ff2244" }, { text: "ZAFIRO", color: "#2266ff" }, { text: "ESMERALDA", color: "#11cc66" }] },
+    4: { start: 387, end: 493, games: [{ text: "DIAMANTE", color: "#aaaaff" }, { text: "PERLA", color: "#ffaaaa" }, { text: "PLATINO", color: "#999999" }] },
+    5: { start: 494, end: 649, games: [{ text: "BLANCO", color: "#ffffff" }, { text: "NEGRO", color: "#444444" }] },
+    6: { start: 650, end: 721, games: [{ text: "X", color: "#0055ff" }, { text: "Y", color: "#ff2233" }] },
+    7: { start: 722, end: 809, games: [{ text: "SOL", color: "#ff8811" }, { text: "LUNA", color: "#5555ff" }] },
+    8: { start: 810, end: 905, games: [{ text: "ESPADA", color: "#00ccee" }, { text: "ESCUDO", color: "#ff0066" }] },
+    9: { start: 906, end: 1010, games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] }
 };
 
 function formatPaddedId(id) {
@@ -96,7 +44,6 @@ function getGenFromId(id) {
     return 1;
 }
 
-// Devuelve el HTML de los juegos coloreados de forma individual para las cabeceras
 function buildGamesSpanString(genNumber) {
     let arr = genRanges[genNumber].games;
     let html = `<span class="games-bracket">`;
@@ -130,7 +77,6 @@ async function cargarPokemonData(idOrName) {
         const leftColumn = document.getElementById("left-column");
         const dynamicZone = document.getElementById("dynamic-zone");
 
-        // SI ESTAMOS EN MODO LISTA: OCULTAR COMPLETAMENTE LA COLUMNA IZQUIERDA Y TOMAR LA PANTALLA ENTERA (3 EN 3)
         if (vistaActual === "detalle") {
             leftColumn.style.display = "flex";
             dynamicZone.classList.remove("full-screen-zone");
@@ -147,56 +93,70 @@ async function cargarPokemonData(idOrName) {
 
 function establecerContenedorImagen(data) {
     let box = document.getElementById("media-display-box");
-    box.innerHTML = `<img id="poke-img" src="" alt="Pokemon">`;
+    // El botón se inyecta con la clase icon-fullscreen-inside e icono blanco ⛶
+    box.innerHTML = `
+        <img id="poke-img" src="" alt="Pokemon">
+        <button id="btn-fullscreen-3d" class="icon-fullscreen-inside hidden" onclick="abrirModalGigante3D()">⛶</button>
+    `;
     let imgTag = document.getElementById("poke-img");
     
     if (currentVariante === "shiny") {
         imgTag.src = data.sprites.other["official-artwork"].front_shiny || data.sprites.front_shiny;
     } else {
-        imgTag.src = `../assets-main/regular/${formatPaddedId(currentPokemonId)}.png`;
-        imgTag.onerror = function() {
-            this.src = data.sprites.other["official-artwork"].front_default || data.sprites.front_default;
-        };
+        imgTag.src = data.sprites.other["official-artwork"].front_default || data.sprites.front_default;
     }
 }
 
 function establecerContenedor3D() {
     let box = document.getElementById("media-display-box");
-    let padded = formatPaddedId(currentPokemonId);
+    let folder = (currentVariante === "shiny") ? "shiny" : "regular";
+    
+    // Inyectamos el model-viewer con la ruta de tu proyecto local y el botón arriba a la derecha
     box.innerHTML = `
         <model-viewer 
-            src="../assets-3d/${padded}.glb" 
+            id="pokedex-render-model"
+            src="/assets-main/models/opt/${folder}/${currentPokemonId}.glb" 
             camera-controls auto-rotate autoplay>
         </model-viewer>
+        <button id="btn-fullscreen-3d" class="icon-fullscreen-inside" onclick="abrirModalGigante3D()">⛶</button>
     `;
+
+    let viewer = document.getElementById("pokedex-render-model");
+    viewer.addEventListener('error', () => {
+        // Respaldo online por si no existe localmente el archivo .glb solicitado
+        viewer.src = `https://raw.githubusercontent.com/theartificialguy/pokemon-3d-models/main/models/${currentPokemonId}.glb`;
+    });
 }
 
 function toggleModo3D() {
     let btn3d = document.getElementById("btn-toggle-3d");
-    let btnFull = document.getElementById("btn-fullscreen-3d");
-    
     if (!modo3DActivo) {
         modo3DActivo = true;
         btn3d.innerText = "VER FOTO";
-        btnFull.classList.remove("hidden");
         establecerContenedor3D();
     } else {
         modo3DActivo = false;
         btn3d.innerText = "VER 3D";
-        btnFull.classList.add("hidden");
         cargarPokemonData(currentPokemonId);
     }
 }
 
 function abrirModalGigante3D() {
     document.getElementById("modal-3d-giant").style.display = "flex";
-    let padded = formatPaddedId(currentPokemonId);
+    let folder = (currentVariante === "shiny") ? "shiny" : "regular";
+    
     document.getElementById("contenedor-render-giant").innerHTML = `
         <model-viewer 
-            src="../assets-3d/${padded}.glb" 
+            id="giant-render-model"
+            src="/assets-main/models/opt/${folder}/${currentPokemonId}.glb" 
             camera-controls auto-rotate autoplay>
         </model-viewer>
     `;
+    
+    let giantViewer = document.getElementById("giant-render-model");
+    giantViewer.addEventListener('error', () => {
+        giantViewer.src = `https://raw.githubusercontent.com/theartificialguy/pokemon-3d-models/main/models/${currentPokemonId}.glb`;
+    });
 }
 
 function cerrarModalGigante3D() {
@@ -208,8 +168,11 @@ function renderizarVistaDetalle(data, speciesData) {
     let genNumber = getGenFromId(data.id);
     let juegosHtml = buildGamesSpanString(genNumber);
 
-    let t1 = data.types[0].type.name.toUpperCase();
-    let t2 = data.types[1] ? data.types[1].type.name.toUpperCase() : null;
+    let t1Raw = data.types[0].type.name.toUpperCase();
+    let t2Raw = data.types[1] ? data.types[1].type.name.toUpperCase() : null;
+    
+    let t1 = typeTranslations[t1Raw] || t1Raw;
+    let t2 = t2Raw ? (typeTranslations[t2Raw] || t2Raw) : null;
 
     let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es') || speciesData.flavor_text_entries.find(e => e.language.name === 'en');
     let textoDesc = descEntry ? descEntry.flavor_text.replace(/\n|\f/g, ' ') : "No description recorded.";
@@ -244,7 +207,7 @@ function renderizarVistaDetalle(data, speciesData) {
                     </div>
                     <div class="type-box-row">
                         <span class="type-label">TIPO 2</span>
-                        <span class="type-value" style="background-color: ${t2 ? typeColors[data.types[1].type.name] : '#ccc'}">${t2 ? t2 : '-'}</span>
+                        <span class="type-value" style="background-color: ${t2Raw ? typeColors[data.types[1].type.name] : '#ccc'}">${t2 ? t2 : '-'}</span>
                     </div>
                 </div>
 
@@ -258,7 +221,30 @@ function renderizarVistaDetalle(data, speciesData) {
             </div>
         </div>
     `;
-    cargarCadenaEvolutivaArbol(speciesData.evolution_chain.url);
+    
+    if (data.id === 808 || data.id === 809) {
+        renderizarEvolucionManualMeltan();
+    } else {
+        cargarCadenaEvolutivaArbol(speciesData.evolution_chain.url);
+    }
+}
+
+function renderizarEvolucionManualMeltan() {
+    let container = document.getElementById("evo-master-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    let masterTreeWrapper = document.createElement("div");
+    masterTreeWrapper.className = "evo-complex-tree";
+    masterTreeWrapper.appendChild(crearIconoEvoNode(808));
+
+    let flecha = document.createElement("span");
+    flecha.className = "evo-arrow-side";
+    flecha.innerText = ">";
+    masterTreeWrapper.appendChild(flecha);
+
+    masterTreeWrapper.appendChild(crearIconoEvoNode(809));
+    container.appendChild(masterTreeWrapper);
 }
 
 async function cargarCadenaEvolutivaArbol(url) {
@@ -320,14 +306,12 @@ function crearIconoEvoNode(id) {
     if (currentVariante === "shiny") {
         img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
     } else {
-        img.src = `../assets-main/regular/${formatPaddedId(id)}.png`;
-        img.onerror = () => img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
     }
     img.onclick = () => { vistaActual = "detalle"; cargarPokemonData(id); };
     return img;
 }
 
-// RENDERIZADO EXCLUSIVO EN FILAS DE 3 EN 3 A ANCHO COMPLETO PANTALLA
 function renderizarVistaListaIntegrada() {
     const dynamicZone = document.getElementById("dynamic-zone");
     dynamicZone.innerHTML = `
@@ -340,7 +324,6 @@ function renderizarVistaListaIntegrada() {
     let busqueda = document.getElementById("poke-search").value.toLowerCase().trim();
 
     if (filtroGenActual !== "todas") {
-        // Modo Filtrado Singular por Generación
         let rango = genRanges[filtroGenActual];
         let pokesFiltrados = listaCacheCompleta.filter(p => p.id >= rango.start && p.id <= rango.end && (p.name.toLowerCase().includes(busqueda) || p.id.toString() === busqueda));
         
@@ -354,7 +337,6 @@ function renderizarVistaListaIntegrada() {
         pokesFiltrados.forEach(p => grid.appendChild(crearItemListaRejilla(p)));
         mainScrollBox.appendChild(grid);
     } else {
-        // Vista de "TODAS" o Resultados Generales por Buscador
         for (let genId = 1; genId <= 9; genId++) {
             let rango = genRanges[genId];
             let pokesFiltrados = listaCacheCompleta.filter(p => p.id >= rango.start && p.id <= rango.end && (p.name.toLowerCase().includes(busqueda) || p.id.toString() === busqueda));
@@ -385,10 +367,8 @@ function crearItemListaRejilla(p) {
     return item;
 }
 
-// DETECTOR DE ESCRITURA EN VIVO: SALTA A MODO LISTA COMPLETA AL INSTANTE
 document.getElementById("poke-search").addEventListener("input", function() {
     vistaActual = "lista"; 
-    
     const leftColumn = document.getElementById("left-column");
     const dynamicZone = document.getElementById("dynamic-zone");
     leftColumn.style.display = "none";
@@ -465,7 +445,8 @@ async function abrirModalMoves(pokeId) {
         listaMovimientosDetallados.forEach(md => {
             let tr = document.createElement("tr");
             let nombre = md.name.toUpperCase(); 
-            let tipo = md.type.name.toUpperCase();
+            let tipoRaw = md.type.name.toUpperCase();
+            let tipo = typeTranslations[tipoRaw] || tipoRaw;
             let cat = md.damage_class ? md.damage_class.name.substring(0, 3).toUpperCase() : "-";
             let pot = md.power ? md.power : "-";
             let prec = md.accuracy ? md.accuracy + "%" : "-";
