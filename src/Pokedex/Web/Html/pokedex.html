@@ -14,7 +14,7 @@
         <div class="pokedex-header">
             <div class="header-left-side">
                 <div class="blue-sensor"></div>
-                <h1 class="pokedex-title">SISTEMA NACIONAL</h1>
+                <h1 class="pokedex-title">POKÉDEX</h1>
             </div>
             <div class="header-right-controls">
                 <button id="btn-toggle-gens" class="btn-toggle-gens">[+] GENS</button>
@@ -44,7 +44,7 @@
             <div id="left-column" class="view-left">
                 <div class="img-box" id="media-display-box">
                     <img id="poke-img" src="" alt="Pokemon">
-                    <button id="btn-fullscreen-3d" class="icon-fullscreen-inside hidden" onclick="abrirModalGigante3D()">⛶</button>
+                    <button id="btn-fullscreen-3d" class="icon-fullscreen-inside hidden" onclick="abrirModalGigante3D()">⛶ AMPLIAR</button>
                 </div>
                 
                 <div class="forms-grid">
@@ -82,12 +82,14 @@
         </div>
     </div>
 
-    <div id="modal-moves" class="modal-moves-retro">
-        <div class="contenido-modal-moves">
-            <span class="cerrar-moves" onclick="cerrarModalMoves()">&times;</span>
-            <h3 class="moves-title-header">MOVES LIST</h3>
-            <div class="table-wrapper-moves">
-                <table class="moves-retro-table">
+    <div id="modal-moves" class="moves-popup-overlay" style="display: none;">
+        <div class="moves-popup-content">
+            <div class="moves-popup-header">
+                <h3 class="moves-popup-title">MOVES LIST</h3>
+                <span class="btn-close-popup" onclick="window.cerrarModalMoves()">&times;</span>
+            </div>
+            <div class="moves-popup-body">
+                <table class="moves-table">
                     <thead>
                         <tr>
                             <th>MOVE</th>
@@ -102,6 +104,10 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
 
     <script src="../Js/pokedex.js"></script>
 </body>
