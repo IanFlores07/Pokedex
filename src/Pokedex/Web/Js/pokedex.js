@@ -283,14 +283,21 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let movesRowsHtml = "";
 
     for (let m of movesToFetch) {
-        let moveName = m.move.name.replace("-", " ").toUpperCase();
         let moveUrl = m.move.url;
+        let moveName = m.move.name.replace("-", " ").toUpperCase(); // Nombre en inglés por defecto por si falla
         let typeName = "???", power = "-", accuracy = "-";
 
         try {
             let moveRes = await fetch(moveUrl);
             if (moveRes.ok) {
                 let moveData = await moveRes.json();
+                
+                // EXTRA: Buscar el nombre en castellano dentro de los nombres que da la API
+                let nombreEspanolObj = moveData.names.find(n => n.language.name === "es");
+                if (nombreEspanolObj) {
+                    moveName = nombreEspanolObj.name.toUpperCase();
+                }
+
                 typeName = moveData.type.name;
                 power = moveData.power !== null ? moveData.power : "-";
                 accuracy = moveData.accuracy !== null ? moveData.accuracy + "%" : "-";
