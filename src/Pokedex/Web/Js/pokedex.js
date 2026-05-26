@@ -140,13 +140,16 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
             tarjetaPoke.className = "item-poke-minimal";
             
             tarjetaPoke.onclick = () => {
-                if (leftColumn) leftColumn.style.display = "flex";
+                // Aseguramos que la columna izquierda aparezca y ocupe su 33.33% real
+                if (leftColumn) {
+                    leftColumn.style.display = "flex";
+                }
+                // Quitamos la clase de pantalla completa de la lista para que el wrapper ocupe su 66.66% ideal
                 dynamicZone.classList.remove("full-screen-zone");
                 vistaActual = "detalle";
                 window.cargarPokemonData(poke.id);
             };
 
-            // Solo Número y Nombre, apilados en dos filas, color negro
             tarjetaPoke.innerHTML = `
                 <span class="poke-num">#${numPadded}</span>
                 <span class="poke-name">${poke.name}</span>
@@ -224,7 +227,30 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let altura  = (data.height / 10) + "m";
     let peso    = (data.weight / 10) + "kg";
 
-    // Extraer rango e información de la generación actual del Pokémon para clonar las etiquetas
+    // Mapeo básico de tipos a español
+    const tiposEspanol = {
+        normal: "Normal", fire: "Fuego", water: "Agua", electric: "Eléctrico", grass: "Planta",
+        ice: "Hielo", fighting: "Lucha", poison: "Veneno", ground: "Tierra", flying: "Volador",
+        psychic: "Psíquico", bug: "Bicho", rock: "Roca", ghost: "Fantasma", dragon: "Dragón",
+        dark: "Siniestro", steel: "Acero", fairy: "Hada"
+    };
+
+    // Extraer tipos originales de la API
+    let tipo1Raw = data.types[0]?.type.name || "-";
+    let tipo2Raw = data.types[1]?.type.name || "-";
+
+    // Traducir texto
+    let tipo1Texto = tiposEspanol[tipo1Raw] || tipo1Raw.toUpperCase();
+    let tipo2Texto = tiposEspanol[tipo2Raw] || "-";
+
+    // Asignar colores de fondo dinámicos basados en la paleta existente
+    let tipo1BgColor = typeColors[tipo1Raw.toLowerCase()] || "#cef5ff";
+    let tipo2BgColor = typeColors[tipo2Raw.toLowerCase()] || "#cef5ff";
+
+    // Estilos de texto (Blanco y con sombra si tiene tipo para que resalte, negro si está vacío)
+    let tipo1TextColor = typeColors[tipo1Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
+    let tipo2TextColor = typeColors[tipo2Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
+
     let rangoActual = rangosGeneracionesPokedex[idGenActiva] || rangosGeneracionesPokedex[1];
     let juegosHtml = "";
     rangoActual.games.forEach(g => {
@@ -248,8 +274,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         evoHtml += `
             <div class="evo-poke-node" onclick="window.cargarPokemonData(${evo.id})">
                 <img src="${imgUrl}" alt="${evo.name}">
-                <span>${evo.name.substring(0, 7)}</span>
-            </div>
+                <span>${evo.name}</span> </div>
         `;
         if (idx < evoList.length - 1) evoHtml += `<span class="evo-arrow">&gt;</span>`;
     });
@@ -283,7 +308,6 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         `;
     }
 
-    // Renderizado estructural limpio recalculando el espacio de las vistas central y derecha
     dynamicZone.innerHTML = `
         <div class="details-layout">
             <div class="view-center">
@@ -305,8 +329,19 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
                     <div class="stat-item"><span class="stat-label">ALT</span><span class="stat-value">${altura}</span></div>
                     <div class="stat-item"><span class="stat-label">PES</span><span class="stat-value">${peso}</span></div>
                 </div>
+
+                <div style="display: flex; gap: 6px; margin-top: 2px;">
+                    <div class="stat-item" style="flex: 1; background-color: ${tipo1BgColor};">
+                        <span class="stat-label" style="width: 65px;">TIPO 1</span>
+                        <span class="stat-value" style="text-align: center; padding-right: 0; text-transform: uppercase; color: ${tipo1TextColor}">${tipo1Texto}</span>
+                    </div>
+                    <div class="stat-item" style="flex: 1; background-color: ${tipo2BgColor};">
+                        <span class="stat-label" style="width: 65px;">TIPO 2</span>
+                        <span class="stat-value" style="text-align: center; padding-right: 0; text-transform: uppercase; color: ${tipo2TextColor}">${tipo2Texto}</span>
+                    </div>
+                </div>
                 
-                <div class="desc-box">
+                <div class="desc-box" style="margin-top: 2px;">
                     DESC: ${descEntry.flavor_text.replace(/\n|\f/g, ' ')}
                 </div>
             </div>

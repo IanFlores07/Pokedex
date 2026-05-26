@@ -98,15 +98,15 @@ html, body {
     display: flex; 
     flex-direction: row;
     position: relative;
-    gap: 12px;
+    gap: 15px;
     overflow: hidden;
 }
 
 /* ==========================================================================
-   ESTRUCTURA TRIPLE COLUMNA (DETALLE COMPLETO SIN ESPACIOS VACÍOS)
+   ESTRUCTURA DE TRES ZONAS EQUITATIVAS (33.33% CADA UNA SIN EXTRA)
    ========================================================================== */
 .dynamic-zone-wrapper { 
-    width: 100%; 
+    width: 66.66%; /* El bloque central + bloque derecho ocupan las 2/3 partes restantes */
     display: flex; 
     height: 100%; 
 }
@@ -121,9 +121,9 @@ html, body {
     gap: 15px; 
 }
 
-/* COLUMNA IZQUIERDA */
+/* ZONA 1: COLUMNA IZQUIERDA (33.33% REAL) */
 .view-left { 
-    width: 28%; 
+    width: 33.33%; 
     display: flex; 
     flex-direction: column; 
     gap: 8px; 
@@ -134,7 +134,7 @@ html, body {
     background-color: #cef5ff; 
     border: 3px solid #000; 
     border-radius: 6px;
-    height: 200px; 
+    height: 220px; 
     width: 100%;
     display: flex; 
     justify-content: center; 
@@ -176,9 +176,9 @@ html, body {
 .nav-arrows { display: flex; gap: 4px; }
 .nav-arrows button { flex: 1; background-color: #111; color: #fff; border: 2px solid #000; font-family: 'Press Start 2P', monospace; padding: 6px; cursor: pointer; }
 
-/* COLUMNA CENTRAL (MEDIO) */
+/* ZONA 2: COLUMNA CENTRAL (50% de las 2/3 partes = 33.33% TOTAL) */
 .view-center { 
-    width: 45%; 
+    width: 50%; 
     padding: 12px; 
     display: flex; 
     flex-direction: column; 
@@ -198,7 +198,7 @@ html, body {
     flex-wrap: wrap;
     gap: 8px;
 }
-.poke-name { color: #000; font-size: 1.2rem; text-transform: uppercase; font-weight: bold; }
+.poke-name { color: #000; font-size: 1.1rem; text-transform: uppercase; font-weight: bold; }
 
 .poke-header-meta {
     display: flex;
@@ -206,7 +206,6 @@ html, body {
     gap: 4px;
 }
 
-/* Rejilla de Estadísticas */
 .stats-grid { 
     display: grid; 
     grid-template-columns: repeat(2, 1fr); 
@@ -215,7 +214,7 @@ html, body {
 .stat-item { 
     display: flex; 
     border: 2px solid #000; 
-    height: 28px; 
+    height: 32px; 
     align-items: center; 
     background-color: #cef5ff; 
 }
@@ -224,7 +223,7 @@ html, body {
     color: #ffffff; 
     font-size: 0.55rem; 
     padding-left: 6px; 
-    width: 55px; 
+    width: 65px; 
     height: 100%; 
     display: flex; 
     align-items: center; 
@@ -250,9 +249,9 @@ html, body {
     overflow-y: auto; 
 }
 
-/* COLUMNA DERECHA COMPLETA */
+/* ZONA 3: COLUMNA DERECHA (50% de las 2/3 partes = 33.33% TOTAL) */
 .view-right-panel {
-    width: 55%;
+    width: 50%; 
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -266,21 +265,24 @@ html, body {
 .evo-section-box {
     border: 3px solid #000;
     background-color: #cef5ff;
-    padding: 8px;
+    padding: 10px 6px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     flex-shrink: 0;
 }
 .evo-title-label { font-size: 0.6rem; color: #000; text-align: center; font-weight: bold; }
+
 .evo-flex-container {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px;
     overflow-x: auto;
-    padding: 4px;
+    padding: 4px 0;
 }
+
+/* AJUSTE CLAVE: Cajas de evoluciones más grandes y elásticas para los nombres completos */
 .evo-poke-node {
     display: flex;
     flex-direction: column;
@@ -288,14 +290,27 @@ html, body {
     cursor: pointer;
     background-color: #fff;
     border: 2px solid #000;
-    padding: 4px;
-    border-radius: 4px;
-    min-width: 55px;
+    padding: 6px 4px;
+    border-radius: 5px;
+    min-width: 82px; /* Ampliado para dar base suficiente a textos largos */
+    flex-grow: 1;    /* Permite que se autoajuste si el nombre requiere espacio */
 }
 .evo-poke-node:hover { background-color: #ffcc00; }
-.evo-poke-node img { width: 36px; height: 36px; object-fit: contain; }
-.evo-poke-node span { font-size: 0.45rem; color: #000; font-weight: bold; margin-top: 2px; text-transform: uppercase; }
-.evo-arrow { font-size: 0.6rem; color: #000; font-weight: bold; }
+.evo-poke-node img { 
+    width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; 
+}
+
+/* Letra escalada y sin truncar para que quepa cualquier nombre sin romperse */
+.evo-poke-node span { 
+    font-size: 0.42rem; 
+    color: #000; 
+    font-weight: bold; 
+    margin-top: 5px; 
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap; /* Evita que salte de línea de forma fea */
+}
+.evo-arrow { font-size: 0.6rem; color: #000; font-weight: bold; padding: 0 2px; }
 
 .moves-section-box {
     border: 3px solid #000;
@@ -354,7 +369,6 @@ html, body {
     gap: 15px;
 }
 
-/* El cuadro negro superior */
 .black-info-box {
     background-color: #000000;
     border: 3px solid #000000;
@@ -380,7 +394,6 @@ html, body {
     gap: 4px; 
 }
 
-/* Rejilla 3x3 */
 .grid-gens-3x3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr) !important;
@@ -390,7 +403,6 @@ html, body {
     padding-right: 8px;
 }
 
-/* Tarjeta de Pokémon */
 .item-poke-minimal {
     background-color: #ffffff;
     border: 3px solid #000000;
