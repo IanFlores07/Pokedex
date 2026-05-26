@@ -1,110 +1,180 @@
-let currentPokemonId = 1;
+// =========================================================================
+// POKÉDEX NACIONAL - INTERACTIVA CON ESTADÍSTICAS RETRO DEL SISTEMA
+// =========================================================================
+
+let currentPokemonId = null; 
 let currentVariante = "regular"; 
 let vistaActual = "lista"; 
-let filtroGenActual = "todas";
-let listaCacheCompleta = []; 
+let idGenActiva = 1; 
 let modo3DActivo = false;
 
 let mainAnimationId = null;
-let popAnimationId = null;
-
 let scene, camera, renderer = null, currentModel = null;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
-let popScene, popCamera, popRenderer = null, popModel = null;
-let popIsDragging = false;
-let popPreviousMousePosition = { x: 0, y: 0 };
-
-const typeColors = {
-    normal: "#A8A878", fire: "#F08030", water: "#6890F0", electric: "#F8D030", grass: "#78C850",
-    ice: "#98D8D8", fighting: "#C03028", poison: "#A040A0", ground: "#E0C068", flying: "#A890F0",
-    psychic: "#F85888", bug: "#A8B820", rock: "#B8A038", ghost: "#705898", dragon: "#7038F8",
-    dark: "#705848", steel: "#B8B8D0", fairy: "#EE99AC"
-};
-
-const typeTranslations = {
-    NORMAL: "NORMAL", FIRE: "FUEGO", WATER: "AGUA", ELECTRIC: "ELÉCTRICO", GRASS: "PLANTA",
-    ICE: "HIELO", FIGHTING: "LUCHA", POISON: "VENENO", GROUND: "TIERRA", FLYING: "VOLADOR",
-    PSYCHIC: "PSÍQUICO", BUG: "BICHO", ROCK: "ROCA", GHOST: "FANTASMA", DRAGON: "DRAGÓN",
-    DARK: "SINIESTRO", STEEL: "ACERO", FAIRY: "HADA"
-};
-
-const genRanges = {
-    1: { start: 1, end: 151, games: [{ text: "ROJO", color: "#ff1111" }, { text: "AZUL", color: "#1155ff" }, { text: "AMARILLO", color: "#ffd400" }] },
-    2: { start: 152, end: 251, games: [{ text: "ORO", color: "#d4b35e" }, { text: "PLATA", color: "#cccccc" }, { text: "CRISTAL", color: "#a1e5ff" }] },
-    3: { start: 252, end: 386, games: [{ text: "RUBÍ", color: "#ff2244" }, { text: "ZAFIRO", color: "#2266ff" }, { text: "ESMERALDA", color: "#11cc66" }] },
-    4: { start: 387, end: 493, games: [{ text: "DIAMANTE", color: "#aaaaff" }, { text: "PERLA", color: "#ffaaaa" }, { text: "PLATINO", color: "#999999" }] },
-    5: { start: 494, end: 649, games: [{ text: "BLANCO", color: "#ffffff" }, { text: "NEGRO", color: "#444444" }] },
-    6: { start: 650, end: 721, games: [{ text: "X", color: "#0055ff" }, { text: "Y", color: "#ff2233" }] },
-    7: { start: 722, end: 809, games: [{ text: "SOL", color: "#ff8811" }, { text: "LUNA", color: "#5555ff" }] },
-    8: { start: 810, end: 905, games: [{ text: "ESPADA", color: "#00ccee" }, { text: "ESCUDO", color: "#ff0066" }] },
-    9: { start: 906, end: 1010, games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] }
+// Base de datos oficial con Rangos, Nombres, Ediciones e Islas/Regiones de las 10 Generaciones
+const rangosGeneracionesPokedex = {
+    1: { start: 1, end: 151, nombre: "Gen 1", region: "Kanto", games: [{ text: "ROJO", color: "#ff1111" }, { text: "AZUL", color: "#1155ff" }, { text: "AMARILLO", color: "#ffd400" }] },
+    2: { start: 152, end: 251, nombre: "Gen 2", region: "Johto", games: [{ text: "ORO", color: "#d4b35e" }, { text: "PLATA", color: "#cccccc" }, { text: "CRISTAL", color: "#a1e5ff" }] },
+    3: { start: 252, end: 386, nombre: "Gen 3", region: "Hoenn", games: [{ text: "RUBÍ", color: "#ff2244" }, { text: "ZAFIRO", color: "#2266ff" }, { text: "ESMERALDA", color: "#11cc66" }] },
+    4: { start: 387, end: 493, nombre: "Gen 4", region: "Sinnoh", games: [{ text: "DIAMANTE", color: "#aaaaff" }, { text: "PERLA", color: "#ffaaaa" }, { text: "PLATINO", color: "#999999" }] },
+    5: { start: 494, end: 649, nombre: "Gen 5", region: "Teselia", games: [{ text: "BLANCO", color: "#ffffff", border: "#000" }, { text: "NEGRO", color: "#444444" }] },
+    6: { start: 650, end: 721, nombre: "Gen 6", region: "Kalos", games: [{ text: "X", color: "#0055ff" }, { text: "Y", color: "#ff2233" }] },
+    7: { start: 722, end: 809, nombre: "Gen 7", region: "Alola (Islas)", games: [{ text: "SOL", color: "#ff8811" }, { text: "LUNA", color: "#5555ff" }] },
+    8: { start: 810, end: 905, nombre: "Gen 8", region: "Galar", games: [{ text: "ESPADA", color: "#00ccee" }, { text: "ESCUDO", color: "#ff0066" }] },
+    9: { start: 906, end: 1025, nombre: "Gen 9", region: "Paldea", games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] },
+    10: { start: 1026, end: 1050, nombre: "Gen 10", region: "Uva/Naranja", games: [{ text: "X-0", color: "#00ffcc" }, { text: "Y-0", color: "#ff00aa" }] }
 };
 
 function formatPaddedId(id) {
     return String(id).padStart(3, '0');
 }
 
-function mostrarPantallaInicialOcupandoTodo() {
+// 1. PANTALLA INICIAL RETRO (AL ENTRAR A LA WEB)
+window.mostrarPantallaInicialOcupandoTodo = function() {
     vistaActual = "lista"; 
-    filtroGenActual = "todas";
+    currentPokemonId = null;
     
     const leftColumn = document.getElementById("left-column");
     if(leftColumn) leftColumn.style.display = "none";
     
     const dynamicZone = document.getElementById("dynamic-zone");
-    if(dynamicZone) dynamicZone.classList.add("full-screen-zone");
+    if(dynamicZone) {
+        dynamicZone.classList.add("full-screen-zone");
+        dynamicZone.innerHTML = `
+            <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%; min-height:350px;">
+                <h2 id="txt-blink-inicio" style="font-family:'Press Start 2P', monospace; font-size:12px; color:#000; text-align:center; line-height:2; animation: retroBlink 1.2s infinite;">
+                    &lt;&lt; SELECCIONA UNA GENERACIÓN &gt;&gt;
+                </h2>
+            </div>
+            <style>
+                @keyframes retroBlink {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.15; }
+                }
+            </style>
+        `;
+    }
     
     const pokeIdDisplay = document.getElementById("poke-id");
     if(pokeIdDisplay) pokeIdDisplay.innerText = "#---";
     
-    document.getElementById("poke-search").value = "";
-    renderizarVistaListaIntegrada();
-}
+    let box = document.getElementById("media-display-box");
+    if(box) {
+        const img = box.querySelector("img");
+        if(img) img.src = "";
+    }
+};
 
-function getGenFromId(id) {
-    for (let gen in genRanges) {
-        if (id >= genRanges[gen].start && id <= genRanges[gen].end) {
-            return parseInt(gen);
+// 2. DISPARADOR AL FILTRAR GENERACIONES EN EL INTERRUPTOR SUPERIOR DEL HTML
+window.seleccionarGenFiltro = function(numGen) {
+    const gensBox = document.getElementById("gens-box");
+    if (gensBox) gensBox.classList.add("collapsed"); 
+    window.mostrarCajaGeneracionDetalle(numGen);
+};
+
+// 3. ARRANQUE SEGURO INTERACTIVO
+document.addEventListener("DOMContentLoaded", () => {
+    window.mostrarPantallaInicialOcupandoTodo();
+
+    const btnGenToggle = document.getElementById("btn-toggle-gens");
+    const gensBox = document.getElementById("gens-box");
+
+    if (btnGenToggle && gensBox) {
+        btnGenToggle.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            gensBox.classList.toggle("collapsed");
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!btnGenToggle.contains(e.target) && !gensBox.contains(e.target)) {
+                gensBox.classList.add("collapsed");
+            }
+        });
+    }
+});
+
+// 4. MOSTRAR REJILLA 3X3 A PANTALLA COMPLETA SIN PANEL IZQUIERDO
+window.mostrarCajaGeneracionDetalle = async function(numGen) {
+    idGenActiva = numGen; 
+    vistaActual = "lista";
+
+    const leftColumn = document.getElementById("left-column");
+    if (leftColumn) leftColumn.style.display = "none";
+
+    const dynamicZone = document.getElementById("dynamic-zone");
+    if (!dynamicZone) return;
+    dynamicZone.classList.add("full-screen-zone");
+
+    const rango = rangosGeneracionesPokedex[numGen];
+    if (!rango) return;
+    
+    let juegosHtml = "";
+    rango.games.forEach(g => {
+        let borderStyle = g.border ? `border: 1px solid ${g.border};` : 'border: 1px solid #000;';
+        let textColor = g.color === "#ffffff" ? "#000000" : "#ffffff";
+        juegosHtml += `<span style="background:${g.color}; color:${textColor}; padding:2px 5px; font-size:7px; margin-left:5px; display:inline-block; ${borderStyle}">${g.text}</span>`;
+    });
+    
+    dynamicZone.innerHTML = `
+        <div class="retro-gen-layout">
+            <div class="black-info-box">
+                <h2>GEN ${numGen} - ${rango.nombre.toUpperCase()}</h2>
+                <p>REGIÓN / ISLA: <span style="color: #ffcc00;">${rango.region.toUpperCase()}</span></p>
+                <p style="display: flex; align-items: center; flex-wrap: wrap;">JUEGOS: ${juegosHtml}</p>
+            </div>
+            
+            <div id="grid-pokes-3x3" class="grid-gens-3x3">
+                <p style="font-size: 8px; color: #000; animation: retroBlink 1s infinite;">CARGANDO REJILLA CRIO-DATOS...</p>
+            </div>
+        </div>
+    `;
+
+    try {
+        let respuesta = await fetch(`https://pokeapi.co/api/v2/generation/${numGen}/`);
+        let datosGen = await respuesta.json();
+        
+        let pokemonListData = datosGen.pokemon_species.map(specie => {
+            let id = parseInt(specie.url.split("/").slice(-2, -1)[0]);
+            return { id: id, name: specie.name.toUpperCase() };
+        }).filter(p => p.id >= rango.start && p.id <= rango.end)
+          .sort((a, b) => a.id - b.id);
+
+        const gridContenedor = document.getElementById("grid-pokes-3x3");
+        if (!gridContenedor) return;
+        gridContenedor.innerHTML = ""; 
+
+        pokemonListData.forEach(poke => {
+            let numPadded = String(poke.id).padStart(3, '0');
+            let tarjetaPoke = document.createElement("div");
+            tarjetaPoke.className = "item-poke-minimal";
+            
+            tarjetaPoke.onclick = () => {
+                if (leftColumn) leftColumn.style.display = "flex";
+                dynamicZone.classList.remove("full-screen-zone");
+                vistaActual = "detalle";
+                window.cargarPokemonData(poke.id);
+            };
+
+            tarjetaPoke.innerHTML = `
+                <span class="poke-num">#${numPadded}</span>
+                <span class="poke-name">${poke.name}</span>
+            `;
+            gridContenedor.appendChild(tarjetaPoke);
+        });
+
+    } catch (error) {
+        const gridContenedor = document.getElementById("grid-pokes-3x3");
+        if (gridContenedor) {
+            gridContenedor.innerHTML = `<p style="color: red; font-size: 8px;">ERROR EN LA RED DE DATOS.</p>`;
         }
     }
-    return 1;
-}
-
-// CORRECCIÓN DIRECTA: Definir funciones accesibles globalmente para coincidir con tu HTML
-window.abrirModalMoves = function() {
-    let modal = document.getElementById("modal-moves");
-    if(modal) {
-        modal.style.display = "flex";
-    }
-    ejecutarCargaMovimientosServidor(currentPokemonId);
 };
 
-window.cerrarModalMoves = function() {
-    let modal = document.getElementById("modal-moves");
-    if(modal) {
-        modal.style.display = "none";
-    }
-};
-
-// Vinculación estándar por compatibilidad de ámbito con navegadores antiguos
-function abrirModalMoves() { window.abrirModalMoves(); }
-function cerrarModalMoves() { window.cerrarModalMoves(); }
-
-function buildGamesSpanString(genNumber) {
-    if (!genRanges[genNumber]) return '';
-    let arr = genRanges[genNumber].games;
-    let html = `<span class="games-bracket">`;
-    arr.forEach((g, i) => {
-        html += `<span class="game-word-span" style="color:${g.color}">${g.text}</span>`;
-        if (i < arr.length - 1) html += ` <span style="color:#fff;">/</span> `;
-    });
-    html += `</span>`;
-    return html;
-}
-
-async function cargarPokemonData(idOrName) {
+// 5. CARGAR DETALLE INDIVIDUAL DEL POKÉMON SELECCIONADO
+window.cargarPokemonData = async function(idOrName) {
     try {
         let res = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName.toString().toLowerCase()}`);
         if (!res.ok) return; 
@@ -112,776 +182,190 @@ async function cargarPokemonData(idOrName) {
         
         currentPokemonId = data.id;
         
+        for (const genKey in rangosGeneracionesPokedex) {
+            let r = rangosGeneracionesPokedex[genKey];
+            if (currentPokemonId >= r.start && currentPokemonId <= r.end) {
+                idGenActiva = parseInt(genKey);
+                break;
+            }
+        }
+        
         let speciesRes = await fetch(data.species.url);
         let speciesData = await speciesRes.json();
 
         const idDisplay = document.getElementById("poke-id");
         if(idDisplay) idDisplay.innerText = "#" + formatPaddedId(currentPokemonId);
-        
-        const leftColumn = document.getElementById("left-column");
-        const dynamicZone = document.getElementById("dynamic-zone");
 
-        if (vistaActual === "detalle") {
-            if(leftColumn) leftColumn.style.display = "flex";
-            if(dynamicZone) dynamicZone.classList.remove("full-screen-zone");
-            renderizarVistaDetail(data, speciesData);
-        } else {
-            if(leftColumn) leftColumn.style.display = "none";
-            if(dynamicZone) dynamicZone.classList.add("full-screen-zone");
-            renderizarVistaListaIntegrada();
-        }
-
-        manejarVisualizacionMedia(data);
+        window.renderizarVistaDetail(data, speciesData);
+        window.manejarVisualizacionMedia(data);
 
     } catch (e) {
-        console.log("Error general de carga.");
+        console.log("Error cargando Pokémon.");
     }
-}
+};
 
-function purgarObjeto3D(obj) {
-    if (!obj) return;
-    obj.traverse((child) => {
-        if (child.isMesh) {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(m => { if(m.dispose) m.dispose(); });
-                } else {
-                    if (child.material.dispose) child.material.dispose();
-                }
-            }
-        }
-    });
-}
+// 6. ACCIÓN DEL BOTÓN 'LISTA'
+window.toggleVistaLista = function() {
+    window.mostrarCajaGeneracionDetalle(idGenActiva);
+};
 
-function manejarVisualizacionMedia(data) {
-    let box = document.getElementById("media-display-box");
-    if(!box) return;
-    
-    if (mainAnimationId) {
-        cancelAnimationFrame(mainAnimationId);
-        mainAnimationId = null;
-    }
-    if (currentModel) {
-        purgarObjeto3D(currentModel);
-        currentModel = null;
-    }
+// 7. ACCIÓN DE LAS FLECHAS DE NAVEGACIÓN (< y >)
+window.cambiarPokemon = function(direccion) {
+    if (!currentPokemonId) return;
 
-    box.onmousedown = null;
-    box.onmousemove = null;
-    window.onmouseup = null;
+    let rangoActual = rangosGeneracionesPokedex[idGenActiva];
+    let objetivoId = currentPokemonId + direccion;
 
-    let btnFullscreen = document.getElementById("btn-fullscreen-3d");
-    let img2D = document.getElementById("poke-img");
-
-    box.style.position = "relative";
-
-    if (modo3DActivo) {
-        if (img2D) img2D.style.display = "none";
-        
-        box.querySelectorAll("canvas, #cargando-retro-text, .error-3d-msg").forEach(el => el.remove());
-        
-        if(btnFullscreen) {
-            btnFullscreen.classList.remove("hidden");
-            btnFullscreen.style.display = "block";
-            btnFullscreen.style.position = "absolute";
-            btnFullscreen.style.top = "10px";
-            btnFullscreen.style.right = "10px";
-            btnFullscreen.style.zIndex = "10";
-            
-            btnFullscreen.style.backgroundColor = "#ffd400";
-            btnFullscreen.style.color = "#000000";
-            btnFullscreen.style.fontFamily = "'Press Start 2P', monospace";
-            btnFullscreen.style.fontSize = "10px";
-            btnFullscreen.style.padding = "6px 10px";
-            btnFullscreen.style.border = "2px solid #000000";
-            btnFullscreen.style.cursor = "pointer";
-            btnFullscreen.style.boxShadow = "inset 2px 2px 0px #fff, inset -2px -2px 0px #aa8800";
-        }
-
-        let cargandoTxt = document.createElement("div");
-        cargandoTxt.id = "cargando-retro-text";
-        cargandoTxt.style = "font-size:10px;color:black;text-align:center;padding-top:80px;font-family:'Press Start 2P';position:absolute;width:100%;z-index:1;";
-        cargandoTxt.innerText = `CARGANDO 3D...`;
-        box.appendChild(cargandoTxt);
-
-        setTimeout(() => {
-            inicializarVisorBlender3D(box, data.id);
-        }, 50);
+    if (objetivoId >= rangoActual.start && objetivoId <= rangoActual.end) {
+        window.cargarPokemonData(objetivoId);
     } else {
-        if(btnFullscreen) {
-            btnFullscreen.classList.add("hidden");
-            btnFullscreen.style.display = "none"; 
-        }
-        
-        box.querySelectorAll("canvas, #cargando-retro-text, .error-3d-msg").forEach(el => el.remove());
-        
-        let url = currentVariante === "shiny" ? data.sprites.other["official-artwork"].front_shiny : data.sprites.other["official-artwork"].front_default;
-        
-        if(!img2D) {
-            img2D = document.createElement("img");
-            img2D.id = "poke-img";
-            box.insertBefore(img2D, btnFullscreen);
-        }
-        img2D.src = url || data.sprites.front_default;
-        img2D.style = "width:100%; height:100%; object-fit:contain; display:block;";
+        console.log("Límite de la generación alcanzado.");
     }
-}
+};
 
-function inicializarVisorBlender3D(container, pokemonId) {
-    let cargando = document.getElementById("cargando-retro-text");
-    let width = container.clientWidth || 170;
-    let height = container.clientHeight || 170;
-
-    // 1. FRENAR EN SECO EL PROCESADOR Y LA ANIMACIÓN ANTERIOR
-    if (mainAnimationId) {
-        cancelAnimationFrame(mainAnimationId);
-        mainAnimationId = null;
-    }
-
-    // 2. REUTILIZAR EL RENDERIZADOR (EVITA CREAR INFINITOS CANVAS OCULTOS)
-    if (!renderer) {
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-    }
-    
-    if (renderer.domElement.parentNode && renderer.domElement.parentNode !== container) {
-        renderer.domElement.parentNode.removeChild(renderer.domElement);
-    }
-
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limita la resolución para no saturar la GPU
-    renderer.domElement.style.position = "absolute";
-    renderer.domElement.style.top = "0";
-    renderer.domElement.style.left = "0";
-    renderer.domElement.style.zIndex = "0";
-    
-    if (!container.contains(renderer.domElement)) {
-        container.insertBefore(renderer.domElement, container.firstChild);
-    }
-
-    // 3. LIMPIEZA ABSOLUTA DE LA GPU (Evita que el navegador colapse al pasar rápido)
-    if (scene) {
-        while (scene.children.length > 0) {
-            let obj = scene.children[0];
-            scene.remove(obj);
-            if (obj.geometry) obj.geometry.dispose();
-            if (obj.material) {
-                if (Array.isArray(obj.material)) {
-                    obj.material.forEach(m => m.dispose());
-                } else {
-                    obj.material.dispose();
-                }
-            }
-        }
-    } else {
-        scene = new THREE.Scene();
-    }
-
-    // 4. RESETEAR CÁMARA E ILUMINACIÓN
-    camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 4.5);
-
-    scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-    dirLight.position.set(2, 5, 3);
-    scene.add(dirLight);
-
-    // 5. INSTANCIAR CARGADORES LOCALES DE USAR Y TIRAR DE FORMA CONTROLADA
-    const loader = new THREE.GLTFLoader();
-    const dracoLoader = new THREE.DRACOLoader();
-    
-    // Usamos el decodificador oficial estable para evitar desbordamientos asíncronos
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    loader.setDRACOLoader(dracoLoader);
-
-    let carpetaVariante = (currentVariante === "shiny") ? "shiny" : "regular";
-    let rutaModelo = `/assets-main/models/opt/${carpetaVariante}/${pokemonId}.glb`; 
-    
-    loader.load(rutaModelo, (gltf) => {
-        if(cargando) cargando.remove();
-        
-        // Si el usuario ya cambió de Pokémon mientras este se cargaba, lo descartamos inmediatamente
-        if (currentPokemonId !== pokemonId || !modo3DActivo) {
-            gltf.scene.traverse(child => {
-                if(child.geometry) child.geometry.dispose();
-                if(child.material) child.material.dispose();
-            });
-            dracoLoader.dispose();
-            return;
-        }
-
-        let modelGeometry = gltf.scene;
-        
-        try {
-            modelGeometry.updateMatrixWorld(true);
-            const box3 = new THREE.Box3().setFromObject(modelGeometry);
-            const center = box3.getCenter(new THREE.Vector3());
-            const size = box3.getSize(new THREE.Vector3());
-            
-            if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) {
-                modelGeometry.position.set(-center.x, -center.y, -center.z);
-            } else {
-                modelGeometry.position.set(0, 0, 0);
-            }
-
-            currentModel = new THREE.Group();
-            currentModel.add(modelGeometry);
-            scene.add(currentModel);
-
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if(isFinite(maxDim) && maxDim > 0.01) {
-                let scaleFactor = 2.2 / maxDim; 
-                currentModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-            } else {
-                currentModel.scale.set(1, 1, 1);
-            }
-        } catch (err) {
-            currentModel = new THREE.Group();
-            currentModel.add(modelGeometry);
-            scene.add(currentModel);
-            currentModel.scale.set(1, 1, 1);
-        }
-        
-        // Liberar el motor Draco inmediatamente tras pintar el modelo
-        dracoLoader.dispose();
-    }, undefined, (error) => {
-        if(cargando) cargando.remove();
-        console.error("Error al cargar:", error);
-        
-        let msgErr = document.createElement("div");
-        msgErr.className = "error-3d-msg";
-        msgErr.style = "position:absolute;top:70px;width:100%;text-align:center;font-size:8px;color:black;font-weight:bold;font-family:'Press Start 2P';z-index:1;";
-        msgErr.innerHTML = `SIN MODELO 3D<br>#${pokemonId}`;
-        container.appendChild(msgErr);
-        
-        // Liberar recursos incluso si da error para no arrastrar el bloqueo al siguiente
-        dracoLoader.dispose();
-    });
-
-    // 6. CONTROLES DEL RATÓN
-    container.onmousedown = (e) => {
-        if(e.target.id === "btn-fullscreen-3d") return;
-        isDragging = true;
-        previousMousePosition = { x: e.clientX, y: e.clientY };
-    };
-
-    container.onmousemove = (e) => {
-        if (!isDragging || !currentModel) return;
-        let deltaMove = { x: e.clientX - previousMousePosition.x, y: e.clientY - previousMousePosition.y };
-        currentModel.rotation.y += deltaMove.x * 0.003; 
-        currentModel.rotation.x += deltaMove.y * 0.003; 
-        previousMousePosition = { x: e.clientX, y: e.clientY };
-    };
-
-    window.onmouseup = () => { isDragging = false; };
-
-    // 7. BUCLE ÚNICO CONTROLADO
-    function animate() {
-        if (!modo3DActivo) return;
-        mainAnimationId = requestAnimationFrame(animate);
-        if (currentModel && !isDragging) {
-            currentModel.rotation.y += 0.003; 
-        }
-        if (renderer && scene && camera) {
-            renderer.render(scene, camera);
-        }
-    }
-    animate();
-}
-
-function abrirModalGigante3D() {
-    let modal = document.getElementById("modal-3d-giant");
-    let container = document.getElementById("contenedor-render-giant");
-    if (!modal || !container) return;
-
-    if (popAnimationId) cancelAnimationFrame(popAnimationId);
-    if (popModel) purgarObjeto3D(popModel);
-
-    container.innerHTML = "";
-    modal.style.display = "flex";
-
-    let width = container.clientWidth || 500;
-    let height = container.clientHeight || 400;
-
-    popScene = new THREE.Scene();
-    popCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    popCamera.position.set(0, 0, 4.5);
-
-    if (!popRenderer) {
-        popRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    }
-    if (popRenderer.domElement.parentNode) {
-        popRenderer.domElement.parentNode.removeChild(popRenderer.domElement);
-    }
-    popRenderer.setSize(width, height);
-    container.appendChild(popRenderer.domElement);
-
-    popScene.add(new THREE.AmbientLight(0xffffff, 1.5));
-    let dLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    dLight.position.set(3, 6, 4);
-    popScene.add(dLight);
-
-    const loader = new THREE.GLTFLoader();
-    const dracoLoader = new THREE.DRACOLoader();
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
-    loader.setDRACOLoader(dracoLoader);
-
-    let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
-    let ruta = `/assets-main/models/opt/${carpeta}/${currentPokemonId}.glb`;
-
-    loader.load(ruta, (gltf) => {
-        let modelGeometry = gltf.scene;
-        try {
-            modelGeometry.updateMatrixWorld(true);
-            const box3 = new THREE.Box3().setFromObject(modelGeometry);
-            const center = box3.getCenter(new THREE.Vector3());
-            const size = box3.getSize(new THREE.Vector3());
-
-            if (isFinite(center.x) && isFinite(center.y) && isFinite(center.z)) {
-                modelGeometry.position.set(-center.x, -center.y, -center.z);
-            } else {
-                modelGeometry.position.set(0, 0, 0);
-            }
-
-            popModel = new THREE.Group();
-            popModel.add(modelGeometry);
-            popScene.add(popModel);
-
-            const maxDim = Math.max(size.x, size.y, size.z);
-            if(isFinite(maxDim) && maxDim > 0.01) {
-                let scaleFactor = 2.2 / maxDim; 
-                popModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
-            } else {
-                popModel.scale.set(1, 1, 1);
-            }
-        } catch (err) {
-            popModel = new THREE.Group();
-            popModel.add(modelGeometry);
-            popScene.add(popModel);
-            popModel.scale.set(1, 1, 1);
-        }
-        dracoLoader.dispose();
-    }, undefined, (err) => {
-        dracoLoader.dispose();
-    });
-
-    container.onmousedown = (e) => {
-        popIsDragging = true;
-        popPreviousMousePosition = { x: e.clientX, y: e.clientY };
-    };
-    container.onmousemove = (e) => {
-        if (!popIsDragging || !popModel) return;
-        let delta = { x: e.clientX - popPreviousMousePosition.x, y: e.clientY - popPreviousMousePosition.y };
-        popModel.rotation.y += delta.x * 0.003;
-        popModel.rotation.x += delta.y * 0.003;
-        popPreviousMousePosition = { x: e.clientX, y: e.clientY };
-    };
-    window.onmouseup = () => { popIsDragging = false; };
-
-    function animarPop() {
-        if (modal.style.display === "none") return;
-        popAnimationId = requestAnimationFrame(animarPop);
-        if (popModel && !popIsDragging) {
-            popModel.rotation.y += 0.003; 
-        }
-        if (popRenderer && popScene && popCamera) {
-            popRenderer.render(popScene, popCamera);
-        }
-    }
-    animarPop();
-}
-
-function cerrarModalGigante3D() {
-    if (popAnimationId) {
-        cancelAnimationFrame(popAnimationId);
-        popAnimationId = null;
-    }
-    if (popModel) {
-        purgarObjeto3D(popModel);
-        popModel = null;
-    }
-    let modal = document.getElementById("modal-3d-giant");
-    if(modal) modal.style.display = "none";
-}
-
-function toggleModo3D() {
-    modo3DActivo = !modo3DActivo;
-    const btn3D = document.querySelector(".btn-3d");
-    if(btn3D) {
-        btn3D.innerText = modo3DActivo ? "VER 2D" : "VER 3D";
-    }
-    cargarPokemonData(currentPokemonId);
-}
-
-async function ejecutarCargaMovimientosServidor(id) {
-    try {
-        let tbody = document.getElementById("moves-list-tbody");
-        if(!tbody) return;
-
-        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;font-size:8px;color:#000;'>CARGANDO...</td></tr>";
-
-        let res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-        if (!res.ok) throw new Error("API Error");
-        let data = await res.json();
-
-        let listaMovs = data.moves.slice(0, 15);
-        let promesas = listaMovs.map(m => fetch(m.move.url).then(r => r.json()).catch(() => null));
-        let infoCompletaMovs = await Promise.all(promesas);
-
-        let tableHtml = "";
-        infoCompletaMovs.forEach(m => {
-            if(!m) return;
-            let nombre = m.name.toUpperCase().replace("-", " ");
-            let tipoRaw = m.type.name.toUpperCase();
-            let tipoTraducido = typeTranslations[tipoRaw] || tipoRaw;
-            
-            let dmgClass = "EST";
-            if (m.damage_class && m.damage_class.name === "physical") dmgClass = "FIS";
-            if (m.damage_class && m.damage_class.name === "special") dmgClass = "ESP";
-            
-            let potencia = m.power ? m.power : "-";
-            let precision = m.accuracy ? m.accuracy + "%" : "-";
-            let colorFondo = typeColors[m.type.name] || "#ccc";
-
-            tableHtml += `
-                <tr>
-                    <td style="font-weight:bold; text-align:left; color:#000;">${nombre}</td>
-                    <td><span class="move-type-badge" style="background-color:${colorFondo}; color:#fff; padding:2px 4px; border-radius:3px;">${tipoTraducido}</span></td>
-                    <td style="font-weight:bold; color:#000;">${dmgClass}</td>
-                    <td style="color:#000;">${potencia}</td>
-                    <td style="color:#000;">${precision}</td>
-                </tr>
-            `;
-        });
-        tbody.innerHTML = tableHtml || "<tr><td colspan='5' style='text-align:center;font-size:8px;color:#000;'>SIN MOVIMIENTOS</td></tr>";
-    } catch(e) {
-        console.error("Error en movimientos:", e);
-        let tbody = document.getElementById("moves-list-tbody");
-        if(tbody) tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;font-size:8px;color:red;'>ERROR AL CARGAR</td></tr>";
-    }
-}
-
-function renderizarVistaDetail(data, speciesData) {
-    let genNumber = getGenFromId(data.id);
-    let juegosHtml = buildGamesSpanString(genNumber);
-
-    let t1Raw = data.types[0].type.name.toUpperCase();
-    let t2Raw = data.types[1] ? data.types[1].type.name.toUpperCase() : null;
-    
-    let t1 = typeTranslations[t1Raw] || t1Raw;
-    let t2 = t2Raw ? (typeTranslations[t2Raw] || t2Raw) : null;
-
-    let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es') || speciesData.flavor_text_entries.find(e => e.language.name === 'en');
-    let textoDesc = descEntry ? descEntry.flavor_text.replace(/\n|\f/g, ' ') : "Sin registro.";
-
+// 8. NUEVO RENDERIZADO CON REJILLA DE ESTADÍSTICAS (COMO LA SEGUNDA FOTO)
+window.renderizarVistaDetail = function(data, speciesData) {
     const dynamicZone = document.getElementById("dynamic-zone");
     if(!dynamicZone) return;
+
+    // Buscar la descripción oficial en español
+    let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es') || { flavor_text: "Sin descripción en el registro." };
+
+    // Extraer las estadísticas base de la API de manera segura
+    let statPS  = data.stats.find(s => s.stat.name === "hp")?.base_stat || 0;
+    let statAT  = data.stats.find(s => s.stat.name === "attack")?.base_stat || 0;
+    let statDF  = data.stats.find(s => s.stat.name === "defense")?.base_stat || 0;
+    let statSA  = data.stats.find(s => s.stat.name === "special-attack")?.base_stat || 0;
+    let statSD  = data.stats.find(s => s.stat.name === "special-defense")?.base_stat || 0;
+    let statVEL = data.stats.find(s => s.stat.name === "speed")?.base_stat || 0;
+
+    // Formatear altura y peso
+    let altura = (data.height / 10) + "m";
+    let peso = (data.weight / 10) + "kg";
+
     dynamicZone.innerHTML = `
         <div class="details-layout">
             <div class="view-center">
                 <div class="header-line">
-                    <h2 class="poke-name">${data.name}</h2>
-                    <div class="gen-and-games-container">
-                        <span class="gen-pill-label">GEN ${genNumber}:</span>
-                        ${juegosHtml}
-                    </div>
+                    <h2 class="poke-name">${data.name.toUpperCase()}</h2>
                 </div>
                 
                 <div class="stats-grid">
-                    <div class="stat-item"><span>PS</span><span>${data.stats.find(s=>s.stat.name==='hp').base_stat}</span></div>
-                    <div class="stat-item"><span>AT</span><span>${data.stats.find(s=>s.stat.name==='attack').base_stat}</span></div>
-                    <div class="stat-item"><span>DF</span><span>${data.stats.find(s=>s.stat.name==='defense').base_stat}</span></div>
-                    <div class="stat-item"><span>SA</span><span>${data.stats.find(s=>s.stat.name==='special-attack').base_stat}</span></div>
-                    <div class="stat-item"><span>SD</span><span>${data.stats.find(s=>s.stat.name==='special-defense').base_stat}</span></div>
-                    <div class="stat-item"><span>VEL</span><span>${data.stats.find(s=>s.stat.name==='speed').base_stat}</span></div>
-                    <div class="stat-item"><span>ALT</span><span>${data.height / 10}m</span></div>
-                    <div class="stat-item"><span>PES</span><span>${data.weight / 10}kg</span></div>
+                    <div class="stat-item"><span class="stat-label">PS</span><span class="stat-value">${statPS}</span></div>
+                    <div class="stat-item"><span class="stat-label">AT</span><span class="stat-value">${statAT}</span></div>
+                    <div class="stat-item"><span class="stat-label">DF</span><span class="stat-value">${statDF}</span></div>
+                    <div class="stat-item"><span class="stat-label">SA</span><span class="stat-value">${statSA}</span></div>
+                    <div class="stat-item"><span class="stat-label">SD</span><span class="stat-value">${statSD}</span></div>
+                    <div class="stat-item"><span class="stat-label">VEL</span><span class="stat-value">${statVEL}</span></div>
+                    <div class="stat-item"><span class="stat-label">ALT</span><span class="stat-value">${altura}</span></div>
+                    <div class="stat-item"><span class="stat-label">PES</span><span class="stat-value">${peso}</span></div>
                 </div>
-
-                <div class="types-horizontal-row">
-                    <div class="type-box-row">
-                        <span class="type-label">TIPO 1</span>
-                        <span class="type-value" style="background-color: ${typeColors[data.types[0].type.name]}">${t1}</span>
-                    </div>
-                    <div class="type-box-row">
-                        <span class="type-label">TIPO 2</span>
-                        <span class="type-value" style="background-color: ${t2Raw ? typeColors[data.types[1].type.name] : '#ccc'}">${t2 ? t2 : '-'}</span>
-                    </div>
+                
+                <div class="desc-box">
+                    DESC: ${descEntry.flavor_text.replace(/\n|\f/g, ' ')}
                 </div>
-
-                <div class="desc-box">DESC: ${textoDesc}</div>
-            </div>
-
-            <div class="view-right-evo">
-                <h3 class="evo-title-label">CADENA EVOLUTIVA</h3>
-                <div class="evo-container-scroll" id="evo-master-container"></div>
-                <button class="btn-moves" id="btn-open-moves-retro" onclick="window.abrirModalMoves()">MOVIMIENTOS</button>
             </div>
         </div>
     `;
-    
-    const btnReg = document.getElementById("btn-var-regular");
-    const btnShiny = document.getElementById("btn-var-shiny");
-    if(btnReg) btnReg.classList.toggle("active", currentVariante === "regular");
-    if(btnShiny) btnShiny.classList.toggle("active", currentVariante === "shiny");
-
-    cargarCadenaEvolutivaArbol(speciesData.evolution_chain.url);
-}
-
-async function cargarCadenaEvolutivaArbol(url) {
-    try {
-        let res = await fetch(url);
-        let chainData = await res.json();
-        let container = document.getElementById("evo-master-container");
-        if (!container) return;
-        container.innerHTML = "";
-
-        let masterTreeWrapper = document.createElement("div");
-        masterTreeWrapper.className = "evo-complex-tree";
-
-        let f1 = chainData.chain;
-        if (!f1) return;
-
-        if (f1.species.name === "eevee" || f1.species.url.includes("/133/")) {
-            let eeveeAltar = document.createElement("div");
-            eeveeAltar.style = "position: relative; width: 100%; height: 390px; display: flex; align-items: center; justify-content: center; overflow: visible;";
-
-            let eeveeNode = crearIconoEvoNode(133);
-            eeveeNode.style = "position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; cursor: pointer;";
-            eeveeAltar.appendChild(eeveeNode);
-
-            const pixelArrowSvg = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='38' viewBox='0 0 16 38'><polygon points='8,1 15,12 11,12 11,37 5,37 5,12 1,12' fill='%23FFD400' stroke='%23000000' stroke-width='2' stroke-linecap='square' stroke-linejoin='miter'/></svg>";
-
-            f1.evolves_to.forEach((evo, i) => {
-                let id = evo.species.url.split("/").slice(-2, -1)[0];
-                let angle = i * 45; 
-                let rad = angle * (Math.PI / 180);
-
-                const R_evos = 125; 
-                let x_evo = R_evos * Math.sin(rad);
-                let y_evo = R_evos * Math.cos(rad);
-
-                let arrowImg = document.createElement("img");
-                arrowImg.src = pixelArrowSvg;
-                arrowImg.style = `position: absolute; left: 50%; top: 50%; width: 16px; height: 38px; transform-origin: bottom center; transform: translate(-50%, -100%) rotate(${angle}deg) translateY(-42px); z-index: 1; pointer-events: none;`;
-                eeveeAltar.appendChild(arrowImg);
-
-                let evoNode = crearIconoEvoNode(id);
-                evoNode.style = `position: absolute; left: calc(50% + ${x_evo}px); top: calc(50% - ${y_evo}px); transform: translate(-50%, -50%); z-index: 2; cursor: pointer;`;
-                eeveeAltar.appendChild(evoNode);
-            });
-
-            masterTreeWrapper.appendChild(eeveeAltar);
-            container.appendChild(masterTreeWrapper);
-            return; 
-        }
-
-        masterTreeWrapper.appendChild(crearIconoEvoNode(f1.species.url.split("/").slice(-2, -1)[0]));
-        
-        if (f1.evolves_to.length > 0) {
-            let flecha1 = document.createElement("span");
-            flecha1.className = "evo-arrow-side";
-            flecha1.innerText = ">";
-            masterTreeWrapper.appendChild(flecha1);
-
-            let columnaF2 = document.createElement("div");
-            columnaF2.className = "evo-column-stack";
-
-            f1.evolves_to.forEach(f2 => {
-                let nodeWrapperF2 = document.createElement("div");
-                nodeWrapperF2.className = "evo-node-wrapper";
-                nodeWrapperF2.appendChild(crearIconoEvoNode(f2.species.url.split("/").slice(-2, -1)[0]));
-
-                if (f2.evolves_to.length > 0) {
-                    let flecha2 = document.createElement("span");
-                    flecha2.className = "evo-arrow-side";
-                    flecha2.innerText = ">";
-                    nodeWrapperF2.appendChild(flecha2);
-
-                    let columnaF3 = document.createElement("div");
-                    columnaF3.className = "evo-column-stack";
-                    f2.evolves_to.forEach(f3 => {
-                        columnaF3.appendChild(crearIconoEvoNode(f3.species.url.split("/").slice(-2, -1)[0]));
-                    });
-                    nodeWrapperF2.appendChild(columnaF3);
-                }
-                columnaF2.appendChild(nodeWrapperF2);
-            });
-            masterTreeWrapper.appendChild(columnaF2);
-        }
-        
-        container.appendChild(masterTreeWrapper);
-    } catch (e) {
-        if(container) container.innerText = "Error.";
-    }
-}
-
-function crearIconoEvoNode(id) {
-    let img = document.createElement("img");
-    img.className = "evo-poke";
-    if (currentVariante === "shiny") {
-        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${id}.png`;
-    } else {
-        img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
-    }
-    img.style.width = "68px";
-    img.style.height = "68px";
-    img.style.imageRendering = "pixelated";
-    img.style.objectFit = "contain";
-    img.onclick = () => { vistaActual = "detalle"; cargarPokemonData(id); };
-    return img;
-}
-
-function renderizarVistaListaIntegrada() {
-    const dynamicZone = document.getElementById("dynamic-zone");
-    if(!dynamicZone) return;
-    dynamicZone.innerHTML = `
-        <div class="integrated-list-zone">
-            <div class="list-scroll-container" id="list-scroll-container"></div>
-        </div>
-    `;
-
-    let mainScrollBox = document.getElementById("list-scroll-container");
-    let busqueda = document.getElementById("poke-search").value.toLowerCase().trim();
-
-    if (filtroGenActual !== "todas") {
-        let rango = genRanges[filtroGenActual];
-        let pokesFiltrados = listaCacheCompleta.filter(p => p.id >= rango.start && p.id <= rango.end && (p.name.toLowerCase().includes(busqueda) || p.id.toString() === busqueda));
-        
-        let header = document.createElement("div");
-        header.className = "gen-section-header";
-        header.innerHTML = `<span>GENERACIÓN ${filtroGenActual}</span> <span class="gen-section-games-subtitle">${buildGamesSpanString(filtroGenActual)}</span>`;
-        mainScrollBox.appendChild(header);
-
-        let grid = document.createElement("div");
-        grid.className = "grid-pokes-scroll";
-        pokesFiltrados.forEach(p => grid.appendChild(crearItemListaRejilla(p)));
-        mainScrollBox.appendChild(grid);
-    } else {
-        for (let genId = 1; genId <= 9; genId++) {
-            let rango = genRanges[genId];
-            if (!rango) continue;
-            let pokesFiltrados = listaCacheCompleta.filter(p => p.id >= rango.start && p.id <= rango.end && (p.name.toLowerCase().includes(busqueda) || p.id.toString() === busqueda));
-            
-            if (pokesFiltrados.length > 0) {
-                let header = document.createElement("div");
-                header.className = "gen-section-header";
-                header.innerHTML = `<span>GENERACIÓN ${genId}</span> <span class="gen-section-games-subtitle">${buildGamesSpanString(genId)}</span>`;
-                mainScrollBox.appendChild(header);
-
-                let grid = document.createElement("div");
-                grid.className = "grid-pokes-scroll";
-                pokesFiltrados.forEach(p => grid.appendChild(crearItemListaRejilla(p)));
-                mainScrollBox.appendChild(grid);
-            }
-        }
-    }
-}
-
-function crearItemListaRejilla(p) {
-    let item = document.createElement("div");
-    item.className = "grid-item-poke";
-    item.onclick = () => {
-        vistaActual = "detalle";
-        cargarPokemonData(p.id);
-    };
-    item.innerHTML = `<span>#${formatPaddedId(p.id)}<br>${p.name}</span>`;
-    return item;
-}
-
-document.getElementById("poke-search").addEventListener("input", function() {
-    vistaActual = "lista"; 
-    const leftColumn = document.getElementById("left-column");
-    const dynamicZone = document.getElementById("dynamic-zone");
-    if(leftColumn) leftColumn.style.display = "none";
-    if(dynamicZone) dynamicZone.classList.add("full-screen-zone");
-    renderizarVistaListaIntegrada();
-});
-
-function seleccionarGenFiltro(num) {
-    document.getElementById("gens-box").classList.add("collapsed");
-    filtroGenActual = num;
-    vistaActual = "lista";
-    
-    const leftColumn = document.getElementById("left-column");
-    const dynamicZone = document.getElementById("dynamic-zone");
-    if(leftColumn) leftColumn.style.display = "none";
-    if(dynamicZone) dynamicZone.classList.add("full-screen-zone");
-
-    renderizarVistaListaIntegrada();
-}
-
-function cambiarVariante(tipo) {
-    currentVariante = tipo;
-    cargarPokemonData(currentPokemonId);
-}
-
-function toggleVistaLista() {
-    vistaActual = (vistaActual === "detalle") ? "lista" : "detalle";
-    cargarPokemonData(currentPokemonId);
-}
-
-function cambiarPokemon(dir) {
-    currentPokemonId += dir;
-    if (currentPokemonId < 1) currentPokemonId = 905;
-    if (currentPokemonId > 905) currentPokemonId = 1;
-    cargarPokemonData(currentPokemonId);
-}
-
-document.getElementById("btn-all-pokes").onclick = () => {
-    document.getElementById("poke-search").value = "";
-    filtroGenActual = "todas";
-    vistaActual = "lista";
-    const leftColumn = document.getElementById("left-column");
-    const dynamicZone = document.getElementById("dynamic-zone");
-    if(leftColumn) leftColumn.style.display = "none";
-    if(dynamicZone) dynamicZone.classList.add("full-screen-zone");
-    renderizarVistaListaIntegrada();
 };
 
-document.getElementById("btn-toggle-gens").onclick = () => {
-    document.getElementById("gens-box").classList.toggle("collapsed");
+// 9. CONTROL MULTIMEDIA INDEPENDIENTE (IMAGENES 2D / ELEMENTOS 3D)
+window.manejarVisualizacionMedia = function(data) {
+    let box = document.getElementById("media-display-box");
+    if(!box) return;
+    
+    if (mainAnimationId) cancelAnimationFrame(mainAnimationId);
+    if (currentModel) {
+        currentModel.traverse((child) => {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+                if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                else child.material.dispose();
+            }
+        });
+        currentModel = null;
+    }
+
+    box.querySelectorAll("canvas, #cargando-retro-text, .error-3d-msg, #poke-img").forEach(el => el.remove());
+
+    if (modo3DActivo) {
+        let cargandoTxt = document.createElement("div");
+        cargandoTxt.id = "cargando-retro-text";
+        cargandoTxt.style = "font-size:8px;color:black;text-align:center;padding-top:50px;font-family:'Press Start 2P';position:absolute;width:100%;z-index:10;";
+        cargandoTxt.innerText = `CARGANDO 3D...`;
+        box.appendChild(cargandoTxt);
+
+        setTimeout(() => { window.inicializarVisorBlender3D(box, data.id); }, 50);
+    } else {
+        let url = data.sprites.other["official-artwork"].front_default;
+        if (currentVariante === "shiny") {
+            url = data.sprites.other["official-artwork"].front_shiny;
+        }
+        
+        let img2D = document.createElement("img");
+        img2D.id = "poke-img";
+        img2D.src = url || data.sprites.front_default;
+        img2D.style = "max-height:85%; max-width:85%; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);";
+        box.appendChild(img2D);
+    }
 };
 
-document.addEventListener("click", function(e) {
-    if (e.target && (e.target.id === "btn-back-menu" || e.target.classList.contains("btn-menu-back") || e.target.innerText === "VOLVER AL MENÚ")) {
-        window.location.href = "index.html";
+window.inicializarVisorBlender3D = function(container, pokemonId) {
+    let cargando = document.getElementById("cargando-retro-text");
+    let width = container.clientWidth || 140;
+    let height = container.clientHeight || 140;
+
+    if (!renderer) {
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     }
-});
+    renderer.setSize(width, height);
+    if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
-async function precargarIndiceNacional() {
-    let res = await fetch("https://pokeapi.co/api/v2/pokemon?limit=905");
-    let data = await res.json();
-    listaCacheCompleta = data.results.map((p, index) => ({
-        id: index + 1,
-        name: p.name.toUpperCase()
-    }));
-}
+    if (!scene) scene = new THREE.Scene();
+    else { while(scene.children.length > 0){ scene.remove(scene.children[0]); } }
 
-function limpiarTextosHuerfanosOcultos() {
-    document.querySelectorAll('body > *').forEach(el => {
-        if (!el.classList.contains('pokedex-frame') && el.id !== 'modal-3d-giant' && el.id !== 'modal-moves') {
-            if (el.textContent.includes('MOVES LIST') || el.textContent.includes('MOVETYPECAT')) {
-                el.remove();
-            }
-        }
+    camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
+    camera.position.set(0, 0, 4.5);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    const loader = new THREE.GLTFLoader();
+    
+    let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
+    loader.load(`/assets-main/models/opt/${carpeta}/${pokemonId}.glb`, (gltf) => {
+        if(cargando) cargando.remove();
+        if (currentPokemonId !== pokemonId || !modo3DActivo) return;
+
+        currentModel = gltf.scene;
+        scene.add(currentModel);
+    }, undefined, () => {
+        if(cargando) cargando.remove();
+        let msgErr = document.createElement("div");
+        msgErr.className = "error-3d-msg";
+        msgErr.style = "position:absolute;top:50px;width:100%;text-align:center;font-size:8px;color:black;font-family:'Press Start 2P';";
+        msgErr.innerHTML = `NO 3D`;
+        container.appendChild(msgErr);
     });
-}
 
-function inyectarEstilosRetro() {
-    let style = document.createElement('style');
-    style.innerHTML = `
-        ::-webkit-scrollbar { width: 14px; height: 14px; }
-        ::-webkit-scrollbar-track { background: #222; border-left: 2px solid #000; border-top: 2px solid #000; }
-        ::-webkit-scrollbar-thumb { background: #ffd400; border: 2px solid #000; box-shadow: inset 2px 2px 0px #fff, inset -2px -2px 0px #aa8800; cursor: pointer; }
-        ::-webkit-scrollbar-corner { background: #222; }
-    `;
-    document.head.appendChild(style);
-}
+    function animate() {
+        if (!modo3DActivo) return;
+        mainAnimationId = requestAnimationFrame(animate);
+        if (currentModel && !isDragging) currentModel.rotation.y += 0.01;
+        if (renderer && scene && camera) renderer.render(scene, camera);
+    }
+    animate();
+};
 
-window.onload = async () => {
-    limpiarTextosHuerfanosOcultos();
-    inyectarEstilosRetro(); 
-    await precargarIndiceNacional();
-    mostrarPantallaInicialOcupandoTodo(); 
+window.toggleModo3D = function() {
+    modo3DActivo = !modo3DActivo;
+    const btn3D = document.getElementById("btn-toggle-3d");
+    if(btn3D) btn3D.innerText = modo3DActivo ? "VER 2D" : "VER 3D";
+    if(currentPokemonId) window.cargarPokemonData(currentPokemonId);
+};
+
+window.cambiarVariante = function(tipo) {
+    currentVariante = tipo;
+    document.getElementById("btn-var-regular").classList.toggle("active", tipo === 'regular');
+    document.getElementById("btn-var-shiny").classList.toggle("active", tipo === 'shiny');
+    if(currentPokemonId) window.cargarPokemonData(currentPokemonId);
 };

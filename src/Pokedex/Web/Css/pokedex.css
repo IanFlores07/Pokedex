@@ -166,174 +166,63 @@ html, body {
 
 .details-layout { display: flex; width: 100%; height: 100%; gap: 10px; }
 
-/* SECCIÓN CENTRAL (DETALLES) */
+/* SECCIÓN CENTRAL / NUEVO PANEL DE DETALLES DEL POKÉMON */
 .view-center { 
-    width: 55%; 
-    padding: 10px; 
+    width: 100%; 
+    padding: 15px; 
     display: flex; 
     flex-direction: column; 
-    gap: 8px; 
+    gap: 12px; 
     border: 3px solid #000; 
-    background-color: #5d9ee3; 
-    border-radius: 6px;
+    background-color: #8cb9f1; 
     height: 100%;
 }
-.header-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; border-bottom: 2px dashed #000; padding-bottom: 6px; }
-.poke-name { color: #000; font-size: 1.1rem; text-transform: uppercase; }
+.header-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-bottom: 4px; }
+.poke-name { color: #000; font-size: 1.4rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
-.gen-and-games-container { display: inline-flex; align-items: center; border: 2px solid #000; background-color: #000; font-size: 0.55rem; font-weight: bold; padding: 2px; }
-.gen-pill-label { color: #fff; padding: 2px 4px; }
-.games-bracket { display: inline-flex; gap: 4px; padding: 2px 4px; background-color: #222; }
-.game-word-span { text-transform: uppercase; font-weight: bold; }
+/* REJILLA DE ESTADÍSTICAS (IGUAL A LA FOTO) */
+.stats-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr); 
+    gap: 8px; 
+}
+.stat-item { 
+    display: flex; 
+    border: 3px solid #000; 
+    height: 32px; 
+    align-items: center; 
+    background-color: #232a31; /* Fondo oscuro de la celda */
+}
+.stat-item .stat-label { 
+    background-color: #000000; 
+    color: #ffffff; 
+    font-size: 0.65rem; 
+    padding-left: 10px; 
+    width: 65px; 
+    height: 100%; 
+    display: flex; 
+    align-items: center; 
+    font-weight: bold;
+}
+.stat-item .stat-value { 
+    font-size: 0.75rem; 
+    flex-grow: 1; 
+    text-align: right; 
+    padding-right: 12px; 
+    font-weight: bold; 
+    color: #ffffff; /* Número en blanco */
+}
 
-.stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.stat-item { display: flex; border: 2px solid #000; height: 26px; align-items: center; background-color: #cef5ff; }
-.stat-item span:first-child { background-color: #000; color: #fff; font-size: 0.55rem; padding-left: 6px; width: 50px; height: 100%; display: flex; align-items: center; }
-.stat-item span:last-child { font-size: 0.65rem; flex-grow: 1; text-align: right; padding-right: 6px; font-weight: bold; color: #000; }
-
-.types-horizontal-row { display: flex; width: 100%; gap: 6px; }
-.type-box-row { flex: 1; display: flex; border: 2px solid #000; font-size: 0.55rem; height: 26px; align-items: center; }
-.type-box-row .type-label { background-color: #000; color: #fff; padding-left: 6px; width: 60px; height: 100%; display: flex; align-items: center; }
-.type-box-row .type-value { flex-grow: 1; text-align: center; font-weight: bold; height: 100%; display: flex; align-items: center; justify-content: center; text-transform: uppercase; color: #fff; text-shadow: 1px 1px 0px #000; }
-
+/* CAJA DE DESCRIPCIÓN INFERIOR */
 .desc-box { 
     border: 3px solid #000; 
-    background-color: #b2d2f7; 
+    background-color: #ffffff; 
     color: #000; 
-    font-size: 0.65rem; 
-    padding: 10px; 
-    line-height: 1.4; 
+    font-size: 0.75rem; 
+    padding: 14px; 
+    line-height: 1.5; 
     flex-grow: 1; 
     overflow-y: auto; 
-}
-
-/* SECCIÓN DERECHA: EVOLUCIONES */
-.view-right-evo { 
-    width: 45%; 
-    display: flex; 
-    flex-direction: column; 
-    gap: 8px; 
-    border: 3px solid #000; 
-    background-color: #5d9ee3; 
-    padding: 10px; 
-    border-radius: 6px;
-    height: 100%;
-}
-.evo-title-label { font-size: 0.6rem; color: #000; text-align: center; font-weight: bold; }
-.evo-container-scroll { border: 3px solid #000; background-color: #b2d2f7; flex-grow: 1; overflow-y: auto; display: flex; align-items: center; justify-content: center; padding: 10px; }
-
-.evo-complex-tree { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; width: 100%; }
-.evo-column-stack { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
-.evo-node-wrapper { display: flex; flex-direction: row; align-items: center; gap: 8px; }
-.evo-arrow-side { font-size: 0.7rem; color: #000; font-weight: bold; }
-.evo-poke { width: 56px; height: 56px; object-fit: contain; border: 2px dashed #000; cursor: pointer; background-color: #cef5ff; border-radius: 4px; }
-.evo-poke:hover { background-color: #ffcc00; }
-
-/* REJILLA DE LISTADO INTEGRADO */
-.integrated-list-zone { width: 100%; height: 100%; background-color: #8cb9f1; display: flex; }
-.list-scroll-container { width: 100%; height: 100%; overflow-y: auto; padding: 8px; }
-
-.gen-section-header { 
-    background-color: #000; color: #ffcc00; font-size: 0.75rem; padding: 10px; margin: 14px 0 8px 0; 
-    border-radius: 4px; display: flex; justify-content: space-between; align-items: center; 
-}
-.gen-section-header:first-child { margin-top: 0; }
-.gen-section-games-subtitle { font-size: 0.55rem; }
-
-.grid-pokes-scroll { 
-    display: grid; 
-    grid-template-columns: repeat(3, 1fr) !important; 
-    gap: 12px; 
-    padding: 4px 0; 
-}
-
-.grid-item-poke { 
-    background-color: #fff; border: 3px solid #000; border-radius: 6px; padding: 14px 8px; 
-    text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; 
-    min-height: 65px; box-shadow: 3px 3px 0px #000; 
-}
-.grid-item-poke:hover { background-color: #ffcc00; }
-.grid-item-poke span { font-size: 0.65rem; color: #000; line-height: 1.5; font-weight: bold; }
-
-/* SEGURIDAD: Ocultar cualquier elemento huérfano flotante fuera del frame */
-body > div:not(.pokedex-frame):not(.moves-popup-overlay), body > p, body > span {
-    display: none !important;
-}
-
-/* POP-UP RETRO DE MOVIMIENTOS */
-.moves-popup-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
-    background-color: rgba(0,0,0,0.75);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 9999;
-}
-.moves-popup-content {
-    background-color: #5d9ee3;
-    border: 4px solid #000;
-    border-radius: 8px;
-    width: 90%;
-    max-width: 650px;
-    height: 75vh;
-    display: flex;
-    flex-direction: column;
-    padding: 15px;
-    box-shadow: 6px 6px 0px #000;
-}
-.moves-popup-header {
-    display: flex; justify-content: space-between; align-items: center;
-    border-bottom: 4px solid #000; padding-bottom: 10px; margin-bottom: 10px;
-}
-.moves-popup-title { font-size: 0.75rem; color: #000; font-weight: bold; }
-.btn-close-popup {
-    background-color: #ff5555; color: #fff; border: 3px solid #000;
-    font-family: 'Press Start 2P', monospace; font-size: 0.75rem;
-    padding: 4px 8px; cursor: pointer;
-}
-.moves-popup-body {
-    background-color: #b2d2f7;
-    border: 3px solid #000;
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 5px;
-}
-
-/* SCROLLBAR PIXELADA ESTILO POKEDEX */
-.moves-popup-body::-webkit-scrollbar {
-    width: 16px;
-}
-.moves-popup-body::-webkit-scrollbar-track {
-    background-color: #000000;
-}
-.moves-popup-body::-webkit-scrollbar-thumb {
-    background-color: #ffcc00;
-    border: 4px solid #000000;
-}
-
-.moves-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.moves-table th, .moves-table td {
-    font-size: 0.55rem;
-    padding: 8px 4px;
-    text-align: center;
-    border-bottom: 2px dashed #000;
-    color: #000;
-}
-.moves-table th {
-    background-color: #000;
-    color: #fff;
-    position: sticky;
-    top: 0;
-}
-.move-type-badge {
-    padding: 2px 4px;
-    border: 1px solid #000;
-    color: #fff;
-    text-shadow: 1px 1px 0px #000;
-    font-size: 0.5rem;
-    text-transform: uppercase;
 }
 
 /* FOOTER */
@@ -349,3 +238,88 @@ body > div:not(.pokedex-frame):not(.moves-popup-overlay), body > p, body > span 
     padding: 12px 24px; cursor: pointer; box-shadow: 3px 3px 0px #000; 
 }
 .btn-menu-back:hover { background-color: #ffcc00; color: #000; }
+
+/* ==========================================================================
+   VISTA COMPLETA DE REJILLAS DE GENERACIÓN (3 EN 3)
+   ========================================================================== */
+.retro-gen-layout {
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    font-family: 'Press Start 2P', monospace;
+    color: #000;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Recuadro Negro Superior */
+.black-info-box {
+    background-color: #000000;
+    border: 3px solid #000000;
+    padding: 12px;
+    color: #ffffff;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.black-info-box h2 {
+    font-size: 11px;
+    color: #ffcc00;
+    margin: 0;
+    text-transform: uppercase;
+}
+.black-info-box p {
+    font-size: 8px;
+    margin: 0;
+    color: #fff;
+}
+
+/* Rejilla Masiva 3x3 */
+.grid-gens-3x3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px;
+    overflow-y: auto;
+    flex-grow: 1;
+    padding-right: 8px;
+}
+
+/* Tarjeta Mínima */
+.item-poke-minimal {
+    background-color: #ffffff;
+    border: 3px solid #000000;
+    padding: 14px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px #000000;
+}
+.item-poke-minimal:hover {
+    background-color: #ffcc00;
+}
+.item-poke-minimal .poke-num {
+    font-size: 8px;
+    font-weight: bold;
+    color: #ff1111;
+}
+.item-poke-minimal .poke-name {
+    font-size: 8px;
+    color: #000000;
+    text-transform: uppercase;
+}
+
+/* BARRA DE DESPLAZAMIENTO PIXELADA EXCLUSIVA PARA LA REJILLA */
+.grid-gens-3x3::-webkit-scrollbar {
+    width: 16px;
+}
+.grid-gens-3x3::-webkit-scrollbar-track {
+    background-color: #000000;
+    border: 2px solid #000000;
+}
+.grid-gens-3x3::-webkit-scrollbar-thumb {
+    background-color: #ffcc00;
+    border: 4px solid #000000;
+}
