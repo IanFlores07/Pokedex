@@ -297,7 +297,7 @@ html, body {
 }
 .evo-poke-node:hover { background-color: #ffcc00; }
 .evo-poke-node img { 
-    width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; 
+    width: 64px; height: 64px; object-fit: contain; 
 }
 
 /* Letra escalada y sin truncar para que quepa cualquier nombre sin romperse */

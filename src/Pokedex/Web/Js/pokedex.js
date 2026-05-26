@@ -68,8 +68,11 @@ window.seleccionarGenFiltro = function(numGen) {
 
 document.addEventListener("DOMContentLoaded", () => {
     window.mostrarPantallaInicialOcupandoTodo();
+    
     const btnGenToggle = document.getElementById("btn-toggle-gens");
     const gensBox = document.getElementById("gens-box");
+    const btnAllPokes = document.getElementById("btn-all-pokes");
+    const searchInput = document.getElementById("poke-search");
 
     if (btnGenToggle && gensBox) {
         btnGenToggle.addEventListener("click", (e) => {
@@ -80,6 +83,38 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!btnGenToggle.contains(e.target) && !gensBox.contains(e.target)) {
                 gensBox.classList.add("collapsed");
             }
+        });
+    }
+
+    // Vincular acción del botón "TODAS"
+    if (btnAllPokes) {
+        btnAllPokes.onclick = window.mostrarTodasLasGeneraciones;
+    }
+
+    // LÓGICA DEL BUSCADOR EN TIEMPO REAL (Letras y Números)
+    if (searchInput) {
+        searchInput.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const tarjetas = document.querySelectorAll(".item-poke-minimal");
+
+            tarjetas.forEach(tarjeta => {
+                const nameSpan = tarjeta.querySelector(".poke-name");
+                const numSpan = tarjeta.querySelector(".poke-num");
+                
+                if (nameSpan && numSpan) {
+                    const nameText = nameSpan.textContent.toLowerCase();
+                    const numText = numSpan.textContent.replace("#", ""); 
+                    const numInt = parseInt(numText, 10).toString();
+
+                    if (nameText.includes(query) || numText.startsWith(query) || numInt.startsWith(query)) {
+                        // En lugar de alterar el layout, lo volvemos a meter en el flujo del grid
+                        tarjeta.style.display = ""; 
+                    } else {
+                        // Lo removemos del flujo para que los demás se reposicionen de 3 en 3
+                        tarjeta.style.display = "none"; 
+                    }
+                }
+            });
         });
     }
 });
@@ -96,10 +131,13 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
     if (!dynamicZone) return;
     dynamicZone.classList.add("full-screen-zone");
 
+    // Limpiar buscador al cambiar de sección
+    const searchInput = document.getElementById("poke-search");
+    if (searchInput) searchInput.value = "";
+
     const rango = rangosGeneracionesPokedex[numGen];
     if (!rango) return;
     
-    // Generar píldoras de juegos de color dinámico
     let juegosHtml = "";
     rango.games.forEach(g => {
         let borderStyle = g.border ? `border: 1px solid ${g.border};` : 'border: 1px solid #000;';
@@ -107,14 +145,13 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
         juegosHtml += `<span style="background:${g.color}; color:${textColor}; padding:2px 5px; font-size:7px; font-weight:bold; ${borderStyle}">${g.text}</span>`;
     });
     
-    // Formato exacto: GEN 1 - KANTO y debajo los juegos con colores
     dynamicZone.innerHTML = `
         <div class="retro-gen-layout">
             <div class="black-info-box">
                 <h2>GEN ${numGen} - ${rango.region.toUpperCase()}</h2>
                 <p>${juegosHtml}</p>
             </div>
-            <div id="grid-pokes-3x3" class="grid-gens-3x3">
+            <div id="grid-pokes-3x3" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; align-content: flex-start; padding: 10px; overflow-y: auto; height: calc(100% - 60px);">
                 <p style="font-size: 8px; color: #000;">CARGANDO REJILLA...</p>
             </div>
         </div>
@@ -139,12 +176,14 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
             let tarjetaPoke = document.createElement("div");
             tarjetaPoke.className = "item-poke-minimal";
             
+            // CAMBIO AQUÍ: Forzamos que cada tarjeta individual mida exactamente un tercio (menos el gap)
+            // o un tamaño fijo en píxeles. Esto evita que se deformen al filtrar.
+            tarjetaPoke.style.width = "calc(33.33% - 7px)"; 
+            tarjetaPoke.style.boxSizing = "border-box";
+            tarjetaPoke.style.flex = "none"; // Evita que se estiren si quedan pocas
+
             tarjetaPoke.onclick = () => {
-                // Aseguramos que la columna izquierda aparezca y ocupe su 33.33% real
-                if (leftColumn) {
-                    leftColumn.style.display = "flex";
-                }
-                // Quitamos la clase de pantalla completa de la lista para que el wrapper ocupe su 66.66% ideal
+                if (leftColumn) leftColumn.style.display = "flex";
                 dynamicZone.classList.remove("full-screen-zone");
                 vistaActual = "detalle";
                 window.cargarPokemonData(poke.id);
@@ -161,6 +200,80 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
             document.getElementById("grid-pokes-3x3").innerHTML = `<p style="color: red; font-size: 8px;">ERROR DE CONEXIÓN.</p>`;
         }
     }
+};
+
+// ACCIÓN COMPLETA DEL BOTÓN "TODAS" (PULSAR PARA REUNIR EL UNIVERSO POKÉMON)
+window.mostrarTodasLasGeneraciones = async function() {
+    vistaActual = "lista";
+    const dynamicZone = document.getElementById("dynamic-zone");
+    const leftColumn = document.getElementById("left-column");
+    const searchInput = document.getElementById("poke-search");
+    
+    if (leftColumn) leftColumn.style.display = "none";
+    if (dynamicZone) dynamicZone.classList.add("full-screen-zone");
+    if (searchInput) searchInput.value = "";
+
+    if (!dynamicZone) return;
+
+    dynamicZone.innerHTML = `
+        <div class="retro-gen-layout">
+            <div class="black-info-box">
+                <h2>TODAS LAS GENERACIONES</h2>
+                <p><span style="background:#000; color:#fff; padding:2px 5px; font-size:7px; font-weight:bold; border: 1px solid #fff;">POKÉDEX NACIONAL</span></p>
+            </div>
+            <div class="grid-gens-3x3" id="grid-pokes-3x3">
+                <p style="font-size: 8px; color: #000;">CONSTRUYENDO ÍNDICE GLOBAL...</p>
+            </div>
+        </div>
+    `;
+
+    const gridContenedor = document.getElementById("grid-pokes-3x3");
+    if (!gridContenedor) return;
+    gridContenedor.innerHTML = "";
+
+    // Generar la lista completa mapeando de forma eficiente a partir del archivo maestro de rangos
+    for (let genId in rangosGeneracionesPokedex) {
+        let rango = rangosGeneracionesPokedex[genId];
+        for (let id = rango.start; id <= rango.end; id++) {
+            let numPadded = String(id).padStart(3, '0');
+            let tarjetaPoke = document.createElement("div");
+            tarjetaPoke.className = "item-poke-minimal";
+            
+            // Reutilización limpia de la llamada de datos al hacer click
+            tarjetaPoke.onclick = () => {
+                if (leftColumn) leftColumn.style.display = "flex";
+                dynamicZone.classList.remove("full-screen-zone");
+                vistaActual = "detalle";
+                window.cargarPokemonData(id);
+            };
+
+            // Marcador por defecto optimizado (La PokeAPI actualizará el nombre correcto al entrar al detalle)
+            tarjetaPoke.innerHTML = `
+                <span class="poke-num">#${numPadded}</span>
+                <span class="poke-name">POKÉMON # ${id}</span>
+            `;
+            gridContenedor.appendChild(tarjetaPoke);
+        }
+    }
+
+    // EXTRA: Consultar nombres asíncronamente en segundo plano para actualizar el texto "POKÉMON #ID" por su nombre real
+    try {
+        let res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+        if (res.ok) {
+            let generalData = await res.json();
+            const tarjetas = gridContenedor.querySelectorAll(".item-poke-minimal");
+            tarjetas.forEach((tarjeta) => {
+                const numSpan = tarjeta.querySelector(".poke-num");
+                if (numSpan) {
+                    let realId = parseInt(numSpan.textContent.replace("#", ""), 10);
+                    if (generalData.results[realId - 1]) {
+                        let nameSpan = tarjeta.querySelector(".poke-name");
+                        if (nameSpan) nameSpan.textContent = generalData.results[realId - 1].name.toUpperCase();
+                    }
+                }
+            });
+        }
+    } catch (e) { console.log("Carga de nombres en segundo plano pausada."); }
 };
 
 // 5. CARGAR DETALLE COMPLETO DESDE LA API
@@ -227,7 +340,6 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let altura  = (data.height / 10) + "m";
     let peso    = (data.weight / 10) + "kg";
 
-    // Mapeo básico de tipos a español
     const tiposEspanol = {
         normal: "Normal", fire: "Fuego", water: "Agua", electric: "Eléctrico", grass: "Planta",
         ice: "Hielo", fighting: "Lucha", poison: "Veneno", ground: "Tierra", flying: "Volador",
@@ -235,19 +347,15 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         dark: "Siniestro", steel: "Acero", fairy: "Hada"
     };
 
-    // Extraer tipos originales de la API
     let tipo1Raw = data.types[0]?.type.name || "-";
     let tipo2Raw = data.types[1]?.type.name || "-";
 
-    // Traducir texto
     let tipo1Texto = tiposEspanol[tipo1Raw] || tipo1Raw.toUpperCase();
     let tipo2Texto = tiposEspanol[tipo2Raw] || "-";
 
-    // Asignar colores de fondo dinámicos basados en la paleta existente
     let tipo1BgColor = typeColors[tipo1Raw.toLowerCase()] || "#cef5ff";
     let tipo2BgColor = typeColors[tipo2Raw.toLowerCase()] || "#cef5ff";
 
-    // Estilos de texto (Blanco y con sombra si tiene tipo para que resalte, negro si está vacío)
     let tipo1TextColor = typeColors[tipo1Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
     let tipo2TextColor = typeColors[tipo2Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
 
@@ -270,11 +378,13 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
 
     let evoHtml = "";
     evoList.forEach((evo, idx) => {
-        let imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${evo.id}.png`;
+        // Obtenemos el artwork oficial de alta resolución directamente
+        let imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`;
         evoHtml += `
             <div class="evo-poke-node" onclick="window.cargarPokemonData(${evo.id})">
                 <img src="${imgUrl}" alt="${evo.name}">
-                <span>${evo.name}</span> </div>
+                <span>${evo.name}</span>
+            </div>
         `;
         if (idx < evoList.length - 1) evoHtml += `<span class="evo-arrow">&gt;</span>`;
     });
@@ -284,20 +394,17 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
 
     for (let m of movesToFetch) {
         let moveUrl = m.move.url;
-        let moveName = m.move.name.replace("-", " ").toUpperCase(); // Nombre en inglés por defecto por si falla
+        let moveName = m.move.name.replace("-", " ").toUpperCase(); 
         let typeName = "???", power = "-", accuracy = "-";
 
         try {
             let moveRes = await fetch(moveUrl);
             if (moveRes.ok) {
                 let moveData = await moveRes.json();
-                
-                // EXTRA: Buscar el nombre en castellano dentro de los nombres que da la API
                 let nombreEspanolObj = moveData.names.find(n => n.language.name === "es");
                 if (nombreEspanolObj) {
                     moveName = nombreEspanolObj.name.toUpperCase();
                 }
-
                 typeName = moveData.type.name;
                 power = moveData.power !== null ? moveData.power : "-";
                 accuracy = moveData.accuracy !== null ? moveData.accuracy + "%" : "-";
