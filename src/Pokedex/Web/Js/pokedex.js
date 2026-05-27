@@ -13,6 +13,8 @@ let scene, camera, renderer = null, currentModel = null;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
+let pokedexNombresGlobales = [];
+
 const typeColors = {
     normal: "#A8A878", fire: "#F08030", water: "#6890F0", electric: "#F8D030", grass: "#78C850",
     ice: "#98D8D8", fighting: "#C03028", poison: "#A040A0", ground: "#E0C068", flying: "#A890F0",
@@ -29,18 +31,29 @@ const rangosGeneracionesPokedex = {
     6: { start: 650, end: 721, nombre: "Gen 6", region: "Kalos", games: [{ text: "X", color: "#0055ff" }, { text: "Y", color: "#ff2233" }] },
     7: { start: 722, end: 809, nombre: "Gen 7", region: "Alola", games: [{ text: "SOL", color: "#ff8811" }, { text: "LUNA", color: "#5555ff" }] },
     8: { start: 810, end: 905, nombre: "Gen 8", region: "Galar", games: [{ text: "ESPADA", color: "#00ccee" }, { text: "ESCUDO", color: "#ff0066" }] },
-    9: { start: 906, end: 1025, nombre: "Gen 9", region: "Paldea", games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] },
-    10: { start: 1026, end: 1050, nombre: "Gen 10", region: "Sin Región", games: [{ text: "VIENTO", color: "#00ffcc" }, { text: "OLEAJE", color: "#ff00aa" }] }
+    9: { start: 906, end: 1025, nombre: "Gen 9", region: "Paldea", games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] }
 };
 
 function formatPaddedId(id) {
     return String(id).padStart(3, '0');
 }
 
+async function precargarCatalogoBuscar() {
+    try {
+        let res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+        if (res.ok) {
+            let data = await res.json();
+            pokedexNombresGlobales = data.results.map((p, index) => ({
+                id: index + 1,
+                name: p.name.toUpperCase()
+            }));
+        }
+    } catch (e) { console.log("Error precargando buscador global."); }
+}
+
 window.mostrarPantallaInicialOcupandoTodo = function() {
     vistaActual = "lista"; 
     currentPokemonId = null;
-    
     const leftColumn = document.getElementById("left-column");
     if(leftColumn) leftColumn.style.display = "none";
     
@@ -55,7 +68,6 @@ window.mostrarPantallaInicialOcupandoTodo = function() {
             </div>
         `;
     }
-    
     const pokeIdDisplay = document.getElementById("poke-id");
     if(pokeIdDisplay) pokeIdDisplay.innerText = "#---";
 };
@@ -63,67 +75,96 @@ window.mostrarPantallaInicialOcupandoTodo = function() {
 window.seleccionarGenFiltro = function(numGen) {
     const gensBox = document.getElementById("gens-box");
     if (gensBox) gensBox.classList.add("collapsed"); 
+    const searchInput = document.getElementById("poke-search");
+    if (searchInput) searchInput.value = "";
+    bloqueadoPorBuscador = false;
     window.mostrarCajaGeneracionDetalle(numGen);
+};
+
+let bloqueadoPorBuscador = false;
+
+window.aplicarFiltroBuscador = function() {
+    const searchInput = document.getElementById("poke-search");
+    if (!searchInput) return;
+    
+    const query = searchInput.value.toLowerCase().trim();
+    const dynamicZone = document.getElementById("dynamic-zone");
+    const leftColumn = document.getElementById("left-column");
+
+    if (query === "") {
+        if (bloqueadoPorBuscador) {
+            bloqueadoPorBuscador = false;
+            window.mostrarCajaGeneracionDetalle(idGenActiva);
+        }
+        return;
+    }
+
+    bloqueadoPorBuscador = true;
+    vistaActual = "lista";
+
+    if (leftColumn) leftColumn.style.display = "none";
+    if (dynamicZone) {
+        dynamicZone.classList.add("full-screen-zone");
+        dynamicZone.innerHTML = `
+            <div class="retro-gen-layout">
+                <div class="black-info-box">
+                    <h2>RESULTADOS DE BÚSQUEDA</h2>
+                </div>
+                <div id="grid-pokes-3x3" class="grid-gens-3x3"></div>
+            </div>
+        `;
+    }
+
+    const contenedorDestino = document.getElementById("grid-pokes-3x3");
+    if (!contenedorDestino) return;
+
+    const filtrados = pokedexNombresGlobales.filter(poke => {
+        return poke.name.toLowerCase().includes(query) || poke.id.toString().includes(query);
+    });
+
+    if (filtrados.length === 0) {
+        contenedorDestino.innerHTML = `<p style="font-size: 8px; color: #000; padding: 10px; grid-column: span 3;">NO SE ENCONTRARON POKÉMON.</p>`;
+        return;
+    }
+
+    filtrados.forEach(poke => {
+        let numPadded = formatPaddedId(poke.id);
+        let tarjetaPoke = document.createElement("div");
+        tarjetaPoke.className = "item-poke-minimal";
+        tarjetaPoke.onclick = () => {
+            if (searchInput) searchInput.value = "";
+            bloqueadoPorBuscador = false;
+            if (leftColumn) leftColumn.style.display = "flex";
+            if (dynamicZone) dynamicZone.classList.remove("full-screen-zone");
+            vistaActual = "detalle";
+            window.cargarPokemonData(poke.id);
+        };
+        tarjetaPoke.innerHTML = `<span class="poke-num">#${numPadded}</span><span class="poke-name">${poke.name}</span>`;
+        contenedorDestino.appendChild(tarjetaPoke);
+    });
 };
 
 document.addEventListener("DOMContentLoaded", () => {
     window.mostrarPantallaInicialOcupandoTodo();
+    precargarCatalogoBuscar();
     
     const btnGenToggle = document.getElementById("btn-toggle-gens");
     const gensBox = document.getElementById("gens-box");
-    const btnAllPokes = document.getElementById("btn-all-pokes");
     const searchInput = document.getElementById("poke-search");
 
     if (btnGenToggle && gensBox) {
         btnGenToggle.addEventListener("click", (e) => {
-            e.preventDefault(); e.stopPropagation();
-            gensBox.classList.toggle("collapsed");
-        });
-        document.addEventListener("click", (e) => {
-            if (!btnGenToggle.contains(e.target) && !gensBox.contains(e.target)) {
-                gensBox.classList.add("collapsed");
-            }
+            e.preventDefault(); gensBox.classList.toggle("collapsed");
         });
     }
-
-    // Vincular acción del botón "TODAS"
-    if (btnAllPokes) {
-        btnAllPokes.onclick = window.mostrarTodasLasGeneraciones;
-    }
-
-    // LÓGICA DEL BUSCADOR EN TIEMPO REAL (Letras y Números)
     if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            const tarjetas = document.querySelectorAll(".item-poke-minimal");
-
-            tarjetas.forEach(tarjeta => {
-                const nameSpan = tarjeta.querySelector(".poke-name");
-                const numSpan = tarjeta.querySelector(".poke-num");
-                
-                if (nameSpan && numSpan) {
-                    const nameText = nameSpan.textContent.toLowerCase();
-                    const numText = numSpan.textContent.replace("#", ""); 
-                    const numInt = parseInt(numText, 10).toString();
-
-                    if (nameText.includes(query) || numText.startsWith(query) || numInt.startsWith(query)) {
-                        // En lugar de alterar el layout, lo volvemos a meter en el flujo del grid
-                        tarjeta.style.display = ""; 
-                    } else {
-                        // Lo removemos del flujo para que los demás se reposicionen de 3 en 3
-                        tarjeta.style.display = "none"; 
-                    }
-                }
-            });
-        });
+        searchInput.addEventListener("input", window.aplicarFiltroBuscador);
     }
 });
 
-// 4. MOSTRAR REJILLA 3X3 CON FILAS CENTRADAS Y METADATOS RETRO COLOREADOS
 window.mostrarCajaGeneracionDetalle = async function(numGen) {
     idGenActiva = numGen; 
     vistaActual = "lista";
-
     const leftColumn = document.getElementById("left-column");
     if (leftColumn) leftColumn.style.display = "none";
 
@@ -131,28 +172,14 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
     if (!dynamicZone) return;
     dynamicZone.classList.add("full-screen-zone");
 
-    // Limpiar buscador al cambiar de sección
-    const searchInput = document.getElementById("poke-search");
-    if (searchInput) searchInput.value = "";
-
     const rango = rangosGeneracionesPokedex[numGen];
-    if (!rango) return;
-    
-    let juegosHtml = "";
-    rango.games.forEach(g => {
-        let borderStyle = g.border ? `border: 1px solid ${g.border};` : 'border: 1px solid #000;';
-        let textColor = g.color === "#ffffff" ? "#000000" : "#ffffff";
-        juegosHtml += `<span style="background:${g.color}; color:${textColor}; padding:2px 5px; font-size:7px; font-weight:bold; ${borderStyle}">${g.text}</span>`;
-    });
-    
     dynamicZone.innerHTML = `
         <div class="retro-gen-layout">
             <div class="black-info-box">
                 <h2>GEN ${numGen} - ${rango.region.toUpperCase()}</h2>
-                <p>${juegosHtml}</p>
             </div>
-            <div id="grid-pokes-3x3" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-start; align-content: flex-start; padding: 10px; overflow-y: auto; height: calc(100% - 60px);">
-                <p style="font-size: 8px; color: #000;">CARGANDO REJILLA...</p>
+            <div id="grid-pokes-3x3" class="grid-gens-3x3">
+                <p style="font-size: 8px; color: #000; grid-column: span 3;">CARGANDO REJILLA...</p>
             </div>
         </div>
     `;
@@ -164,130 +191,37 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
         let pokemonListData = datosGen.pokemon_species.map(specie => {
             let id = parseInt(specie.url.split("/").slice(-2, -1)[0]);
             return { id: id, name: specie.name.toUpperCase() };
-        }).filter(p => p.id >= rango.start && p.id <= rango.end)
-          .sort((a, b) => a.id - b.id);
+        }).filter(p => p.id >= rango.start && p.id <= rango.end).sort((a, b) => a.id - b.id);
 
         const gridContenedor = document.getElementById("grid-pokes-3x3");
         if (!gridContenedor) return;
         gridContenedor.innerHTML = ""; 
 
         pokemonListData.forEach(poke => {
-            let numPadded = String(poke.id).padStart(3, '0');
+            let numPadded = formatPaddedId(poke.id);
             let tarjetaPoke = document.createElement("div");
             tarjetaPoke.className = "item-poke-minimal";
-            
-            // CAMBIO AQUÍ: Forzamos que cada tarjeta individual mida exactamente un tercio (menos el gap)
-            // o un tamaño fijo en píxeles. Esto evita que se deformen al filtrar.
-            tarjetaPoke.style.width = "calc(33.33% - 7px)"; 
-            tarjetaPoke.style.boxSizing = "border-box";
-            tarjetaPoke.style.flex = "none"; // Evita que se estiren si quedan pocas
-
             tarjetaPoke.onclick = () => {
                 if (leftColumn) leftColumn.style.display = "flex";
                 dynamicZone.classList.remove("full-screen-zone");
                 vistaActual = "detalle";
                 window.cargarPokemonData(poke.id);
             };
-
-            tarjetaPoke.innerHTML = `
-                <span class="poke-num">#${numPadded}</span>
-                <span class="poke-name">${poke.name}</span>
-            `;
+            tarjetaPoke.innerHTML = `<span class="poke-num">#${numPadded}</span><span class="poke-name">${poke.name}</span>`;
             gridContenedor.appendChild(tarjetaPoke);
         });
-    } catch (error) {
-        if (document.getElementById("grid-pokes-3x3")) {
-            document.getElementById("grid-pokes-3x3").innerHTML = `<p style="color: red; font-size: 8px;">ERROR DE CONEXIÓN.</p>`;
-        }
-    }
+    } catch (error) {}
 };
 
-// ACCIÓN COMPLETA DEL BOTÓN "TODAS" (PULSAR PARA REUNIR EL UNIVERSO POKÉMON)
-window.mostrarTodasLasGeneraciones = async function() {
-    vistaActual = "lista";
-    const dynamicZone = document.getElementById("dynamic-zone");
-    const leftColumn = document.getElementById("left-column");
-    const searchInput = document.getElementById("poke-search");
-    
-    if (leftColumn) leftColumn.style.display = "none";
-    if (dynamicZone) dynamicZone.classList.add("full-screen-zone");
-    if (searchInput) searchInput.value = "";
-
-    if (!dynamicZone) return;
-
-    dynamicZone.innerHTML = `
-        <div class="retro-gen-layout">
-            <div class="black-info-box">
-                <h2>TODAS LAS GENERACIONES</h2>
-                <p><span style="background:#000; color:#fff; padding:2px 5px; font-size:7px; font-weight:bold; border: 1px solid #fff;">POKÉDEX NACIONAL</span></p>
-            </div>
-            <div class="grid-gens-3x3" id="grid-pokes-3x3">
-                <p style="font-size: 8px; color: #000;">CONSTRUYENDO ÍNDICE GLOBAL...</p>
-            </div>
-        </div>
-    `;
-
-    const gridContenedor = document.getElementById("grid-pokes-3x3");
-    if (!gridContenedor) return;
-    gridContenedor.innerHTML = "";
-
-    // Generar la lista completa mapeando de forma eficiente a partir del archivo maestro de rangos
-    for (let genId in rangosGeneracionesPokedex) {
-        let rango = rangosGeneracionesPokedex[genId];
-        for (let id = rango.start; id <= rango.end; id++) {
-            let numPadded = String(id).padStart(3, '0');
-            let tarjetaPoke = document.createElement("div");
-            tarjetaPoke.className = "item-poke-minimal";
-            
-            // Reutilización limpia de la llamada de datos al hacer click
-            tarjetaPoke.onclick = () => {
-                if (leftColumn) leftColumn.style.display = "flex";
-                dynamicZone.classList.remove("full-screen-zone");
-                vistaActual = "detalle";
-                window.cargarPokemonData(id);
-            };
-
-            // Marcador por defecto optimizado (La PokeAPI actualizará el nombre correcto al entrar al detalle)
-            tarjetaPoke.innerHTML = `
-                <span class="poke-num">#${numPadded}</span>
-                <span class="poke-name">POKÉMON # ${id}</span>
-            `;
-            gridContenedor.appendChild(tarjetaPoke);
-        }
-    }
-
-    // EXTRA: Consultar nombres asíncronamente en segundo plano para actualizar el texto "POKÉMON #ID" por su nombre real
-    try {
-        let res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
-        if (res.ok) {
-            let generalData = await res.json();
-            const tarjetas = gridContenedor.querySelectorAll(".item-poke-minimal");
-            tarjetas.forEach((tarjeta) => {
-                const numSpan = tarjeta.querySelector(".poke-num");
-                if (numSpan) {
-                    let realId = parseInt(numSpan.textContent.replace("#", ""), 10);
-                    if (generalData.results[realId - 1]) {
-                        let nameSpan = tarjeta.querySelector(".poke-name");
-                        if (nameSpan) nameSpan.textContent = generalData.results[realId - 1].name.toUpperCase();
-                    }
-                }
-            });
-        }
-    } catch (e) { console.log("Carga de nombres en segundo plano pausada."); }
-};
-
-// 5. CARGAR DETALLE COMPLETO DESDE LA API
 window.cargarPokemonData = async function(idOrName) {
     try {
         let res = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName.toString().toLowerCase()}`);
         if (!res.ok) return; 
         let data = await res.json();
-        
         currentPokemonId = data.id;
         
         for (const genKey in rangosGeneracionesPokedex) {
-            let r = rangosGeneracionesPokedex[genKey];
-            if (currentPokemonId >= r.start && currentPokemonId <= r.end) {
+            if (currentPokemonId >= rangosGeneracionesPokedex[genKey].start && currentPokemonId <= rangosGeneracionesPokedex[genKey].end) {
                 idGenActiva = parseInt(genKey);
                 break;
             }
@@ -295,7 +229,6 @@ window.cargarPokemonData = async function(idOrName) {
         
         let speciesRes = await fetch(data.species.url);
         let speciesData = await speciesRes.json();
-
         let evoChainRes = await fetch(speciesData.evolution_chain.url);
         let evoChainData = await evoChainRes.json();
 
@@ -304,9 +237,15 @@ window.cargarPokemonData = async function(idOrName) {
 
         await window.renderizarVistaDetail(data, speciesData, evoChainData);
         window.manejarVisualizacionMedia(data);
+    } catch (e) {}
+};
 
-    } catch (e) {
-        console.log("Error cargando el Pokémon.", e);
+window.cambiarPokemon = function(direccion) {
+    if (!currentPokemonId) return;
+    let rangoActual = rangosGeneracionesPokedex[idGenActiva];
+    let objetivoId = currentPokemonId + direccion;
+    if (objetivoId >= rangoActual.start && objetivoId <= rangoActual.end) {
+        window.cargarPokemonData(objetivoId);
     }
 };
 
@@ -314,23 +253,15 @@ window.toggleVistaLista = function() {
     window.mostrarCajaGeneracionDetalle(idGenActiva);
 };
 
-window.cambiarPokemon = function(direccion) {
-    if (!currentPokemonId) return;
-    let rangoActual = rangosGeneracionesPokedex[idGenActiva];
-    let objetivoId = currentPokemonId + direccion;
-
-    if (objetivoId >= rangoActual.start && objetivoId <= rangoActual.end) {
-        window.cargarPokemonData(objetivoId);
-    }
+window.mostrarTodasLasGeneraciones = function() {
+    console.log("Filtro global activo.");
 };
 
-// 6. RENDERIZADO DETALLES DEL POKÉMON SELECCIONADO
 window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     const dynamicZone = document.getElementById("dynamic-zone");
     if(!dynamicZone) return;
 
     let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es') || { flavor_text: "Sin descripción." };
-
     let statPS  = data.stats.find(s => s.stat.name === "hp")?.base_stat || 0;
     let statAT  = data.stats.find(s => s.stat.name === "attack")?.base_stat || 0;
     let statDF  = data.stats.find(s => s.stat.name === "defense")?.base_stat || 0;
@@ -340,71 +271,106 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let altura  = (data.height / 10) + "m";
     let peso    = (data.weight / 10) + "kg";
 
-    const tiposEspanol = {
-        normal: "Normal", fire: "Fuego", water: "Agua", electric: "Eléctrico", grass: "Planta",
-        ice: "Hielo", fighting: "Lucha", poison: "Veneno", ground: "Tierra", flying: "Volador",
-        psychic: "Psíquico", bug: "Bicho", rock: "Roca", ghost: "Fantasma", dragon: "Dragón",
-        dark: "Siniestro", steel: "Acero", fairy: "Hada"
-    };
-
     let tipo1Raw = data.types[0]?.type.name || "-";
     let tipo2Raw = data.types[1]?.type.name || "-";
-
-    let tipo1Texto = tiposEspanol[tipo1Raw] || tipo1Raw.toUpperCase();
-    let tipo2Texto = tiposEspanol[tipo2Raw] || "-";
-
     let tipo1BgColor = typeColors[tipo1Raw.toLowerCase()] || "#cef5ff";
     let tipo2BgColor = typeColors[tipo2Raw.toLowerCase()] || "#cef5ff";
 
-    let tipo1TextColor = typeColors[tipo1Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
-    let tipo2TextColor = typeColors[tipo2Raw.toLowerCase()] ? "#ffffff; text-shadow: 1px 1px 0px #000;" : "#000000;";
-
-    let rangoActual = rangosGeneracionesPokedex[idGenActiva] || rangosGeneracionesPokedex[1];
+    let rango = rangosGeneracionesPokedex[idGenActiva];
     let juegosHtml = "";
-    rangoActual.games.forEach(g => {
-        let borderStyle = g.border ? `border: 1px solid ${g.border};` : 'border: 1px solid #000;';
-        let textColor = g.color === "#ffffff" ? "#000000" : "#ffffff";
-        juegosHtml += `<span style="background:${g.color}; color:${textColor}; padding:2px 5px; font-size:7px; font-weight:bold; margin-left:3px; ${borderStyle}">${g.text}</span>`;
-    });
-
-    let evoList = [];
-    let currentEvoStage = evoChainData.chain;
-    while (currentEvoStage) {
-        let name = currentEvoStage.species.name;
-        let id = parseInt(currentEvoStage.species.url.split("/").slice(-2, -1)[0]);
-        evoList.push({ name: name, id: id });
-        currentEvoStage = currentEvoStage.evolves_to[0]; 
+    if (rango) {
+        rango.games.forEach(g => {
+            let borderStyle = g.border ? `border:1px solid ${g.border};` : 'border:1px solid #000;';
+            let textColor = g.color === "#ffffff" ? "#000" : "#fff";
+            juegosHtml += `<span style="background:${g.color}; color:${textColor}; padding:2px 4px; font-size:0.5rem; margin-left:4px; font-weight:bold; ${borderStyle}">${g.text}</span>`;
+        });
     }
 
+    let todosLosNodos = [];
+    const procesarNodoEvoMúltiple = (nodo) => {
+        let id = parseInt(nodo.species.url.split("/").slice(-2, -1)[0]);
+        todosLosNodos.push({
+            id: id,
+            name: nodo.species.name.toUpperCase(),
+            img: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`
+        });
+        if (nodo.evolves_to && nodo.evolves_to.length > 0) {
+            nodo.evolves_to.forEach(subNodo => procesarNodoEvoMúltiple(subNodo));
+        }
+    };
+
+    if (evoChainData && evoChainData.chain) {
+        procesarNodoEvoMúltiple(evoChainData.chain);
+    }
+
+    let esCadenaCompleja = todosLosNodos.length > 3;
     let evoHtml = "";
-    evoList.forEach((evo, idx) => {
-        // Obtenemos el artwork oficial de alta resolución directamente
-        let imgUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`;
+
+    if (esCadenaCompleja) {
+        // CADENA COMPLEJA (EEVEE): Solo Eevee y su flecha. Las evos no llevan NADA más.
+        let baseNode = todosLosNodos[0];
+        let ramasEvoluciones = todosLosNodos.slice(1);
+        let bordeEevee = (baseNode.id === currentPokemonId) ? "border: 2px solid #ffcc00 !important;" : "border: 2px solid #000 !important;";
+
+        evoHtml = `
+            <div class="evo-tree-container" style="display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%; justify-content: center; box-sizing: border-box;">
+                <div class="evo-top-row" style="display: flex; flex-direction: column; align-items: center; width: 100%; position: relative;">
+                    <div class="evo-poke-node" onclick="window.cargarPokemonData(${baseNode.id})" style="cursor:pointer; padding: 4px; ${bordeEevee}">
+                        <img src="${baseNode.img}" style="width: 34px; height: 34px; object-fit: contain;">
+                        <span>${baseNode.name}</span>
+                    </div>
+                    <div class="evo-single-down-arrow" style="font-family:'Press Start 2P', monospace; font-size: 11px; color: #000; font-weight: bold; margin: 4px 0;">↓</div>
+                </div>
+
+                <div class="evo-grid-branches" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 5px; width: 100%;">
+        `;
+
+        ramasEvoluciones.forEach((nodo) => {
+            let bordeEspecial = (nodo.id === currentPokemonId) ? "border: 2px solid #ffcc00 !important;" : "border: 2px solid #000 !important;";
+            evoHtml += `
+                <div class="evo-poke-node" onclick="window.cargarPokemonData(${nodo.id})" style="cursor:pointer; padding: 3px; ${bordeEspecial}">
+                    <img src="${nodo.img}" style="width: 32px; height: 32px; object-fit: contain;">
+                    <span>${nodo.name}</span>
+                </div>
+            `;
+        });
+
         evoHtml += `
-            <div class="evo-poke-node" onclick="window.cargarPokemonData(${evo.id})">
-                <img src="${imgUrl}" alt="${evo.name}">
-                <span>${evo.name}</span>
+                </div>
             </div>
         `;
-        if (idx < evoList.length - 1) evoHtml += `<span class="evo-arrow">&gt;</span>`;
-    });
+    } else {
+        // CADENA LINEAL (BULBASAUR): Corregido para pintar solo UNA flecha "►" de separación
+        evoHtml = `<div class="evo-flex-linear" style="display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 100%;">`;
+        todosLosNodos.forEach((nodo, index) => {
+            let bordeEspecial = (nodo.id === currentPokemonId) ? "border: 2px solid #ffcc00 !important;" : "border: 2px solid #000 !important;";
+            evoHtml += `
+                <div class="evo-poke-node" onclick="window.cargarPokemonData(${nodo.id})" style="cursor:pointer; ${bordeEspecial}">
+                    <img src="${nodo.img}" style="width: 44px; height: 44px; object-fit: contain;">
+                    <span>${nodo.name}</span>
+                </div>
+            `;
+            // Solo una flecha si quedan más elementos en la lista
+            if (index < todosLosNodos.length - 1) {
+                evoHtml += `<div class="evo-arrow-right" style="font-family:'Press Start 2P', monospace; font-size:12px; color:#000; font-weight:bold;">►</div>`;
+            }
+        });
+        evoHtml += `</div>`;
+    }
 
-    let movesToFetch = data.moves.slice(0, 10);
+    let movesToFetch = data.moves.slice(0, 22);
     let movesRowsHtml = "";
 
     for (let m of movesToFetch) {
-        let moveUrl = m.move.url;
         let moveName = m.move.name.replace("-", " ").toUpperCase(); 
-        let typeName = "???", power = "-", accuracy = "-";
+        let typeName = "normal", power = "-", accuracy = "-";
 
         try {
-            let moveRes = await fetch(moveUrl);
+            let moveRes = await fetch(m.move.url);
             if (moveRes.ok) {
                 let moveData = await moveRes.json();
-                let nombreEspanolObj = moveData.names.find(n => n.language.name === "es");
-                if (nombreEspanolObj) {
-                    moveName = nombreEspanolObj.name.toUpperCase();
-                }
+                let esp = moveData.names.find(n => n.language.name === "es");
+                if (esp) moveName = esp.name.toUpperCase();
                 typeName = moveData.type.name;
                 power = moveData.power !== null ? moveData.power : "-";
                 accuracy = moveData.accuracy !== null ? moveData.accuracy + "%" : "-";
@@ -414,10 +380,10 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         let badgeColor = typeColors[typeName.toLowerCase()] || "#666";
         movesRowsHtml += `
             <tr>
-                <td style="text-align:left; font-weight:bold;">${moveName}</td>
-                <td><span class="move-type-pill" style="background-color:${badgeColor};">${typeName}</span></td>
-                <td style="font-weight:bold;">${power}</td>
-                <td style="font-weight:bold;">${accuracy}</td>
+                <td style="text-align:left; font-weight:bold; padding-left: 6px;">${moveName}</td>
+                <td><span class="move-type-pill" style="background-color:${badgeColor};">${typeName.toUpperCase()}</span></td>
+                <td>${power}</td>
+                <td style="padding-right: 6px;">${accuracy}</td>
             </tr>
         `;
     }
@@ -428,11 +394,9 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
                 <div class="header-line">
                     <h2 class="poke-name">${data.name.toUpperCase()}</h2>
                     <div class="poke-header-meta">
-                        <span style="font-size:7px; font-weight:bold; color:#000; margin-right:4px;">${rangoActual.region.toUpperCase()}</span>
                         ${juegosHtml}
                     </div>
                 </div>
-                
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-label">PS</span><span class="stat-value">${statPS}</span></div>
                     <div class="stat-item"><span class="stat-label">AT</span><span class="stat-value">${statAT}</span></div>
@@ -443,42 +407,38 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
                     <div class="stat-item"><span class="stat-label">ALT</span><span class="stat-value">${altura}</span></div>
                     <div class="stat-item"><span class="stat-label">PES</span><span class="stat-value">${peso}</span></div>
                 </div>
-
-                <div style="display: flex; gap: 6px; margin-top: 2px;">
-                    <div class="stat-item" style="flex: 1; background-color: ${tipo1BgColor};">
-                        <span class="stat-label" style="width: 65px;">TIPO 1</span>
-                        <span class="stat-value" style="text-align: center; padding-right: 0; text-transform: uppercase; color: ${tipo1TextColor}">${tipo1Texto}</span>
-                    </div>
-                    <div class="stat-item" style="flex: 1; background-color: ${tipo2BgColor};">
-                        <span class="stat-label" style="width: 65px;">TIPO 2</span>
-                        <span class="stat-value" style="text-align: center; padding-right: 0; text-transform: uppercase; color: ${tipo2TextColor}">${tipo2Texto}</span>
-                    </div>
+                <div style="display: flex; gap: 6px;">
+                    <div class="stat-item" style="flex:1; background:${tipo1BgColor}; justify-content:center;"><span class="stat-value" style="color:#fff; text-shadow:1px 1px #000; text-align:center; padding:0;">${tipo1Raw.toUpperCase()}</span></div>
+                    <div class="stat-item" style="flex:1; background:${tipo2BgColor}; justify-content:center;"><span class="stat-value" style="color:#fff; text-shadow:1px 1px #000; text-align:center; padding:0;">${tipo2Raw.toUpperCase()}</span></div>
                 </div>
-                
-                <div class="desc-box" style="margin-top: 2px;">
+                <div class="desc-box">
                     DESC: ${descEntry.flavor_text.replace(/\n|\f/g, ' ')}
                 </div>
             </div>
 
-            <div class="view-right-panel">
+            <div class="view-right-panel" style="flex: 1;">
                 <div class="evo-section-box">
-                    <div class="evo-title-label">LÍNEA EVOLUTIVA</div>
-                    <div class="evo-flex-container">${evoHtml}</div>
+                    <div class="evo-title-label" style="background:#000; color:#fff; padding:4px 0;">CADENA EVOLUTIVA</div>
+                    <div style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                        ${evoHtml}
+                    </div>
                 </div>
 
                 <div class="moves-section-box">
-                    <div class="moves-title-label">MOVIMIENTOS APRENDIDOS</div>
+                    <div class="moves-title-label" style="background:#000; color:#fff; padding:4px 0;">MOVIMIENTOS APRENDIDOS</div>
                     <div class="moves-table-scroll-wrapper">
                         <table class="moves-retro-table">
                             <thead>
                                 <tr>
-                                    <th style="text-align:left; padding-left:4px;">MOV</th>
+                                    <th style="text-align:left; padding-left: 6px;">MOV</th>
                                     <th>TIPO</th>
                                     <th>POT</th>
-                                    <th>PRE</th>
+                                    <th style="padding-right: 6px;">PRE</th>
                                 </tr>
                             </thead>
-                            <tbody>${movesRowsHtml}</tbody>
+                            <tbody>
+                                ${movesRowsHtml}
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -487,23 +447,11 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     `;
 };
 
-// 7. MULTIMEDIA (VISOR DE IMÁGENES / 3D)
 window.manejarVisualizacionMedia = function(data) {
     let box = document.getElementById("media-display-box");
     if(!box) return;
     
     if (mainAnimationId) cancelAnimationFrame(mainAnimationId);
-    if (currentModel) {
-        currentModel.traverse((child) => {
-            if (child.geometry) child.geometry.dispose();
-            if (child.material) {
-                if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
-                else child.material.dispose();
-            }
-        });
-        currentModel = null;
-    }
-
     box.querySelectorAll("canvas, #cargando-retro-text, .error-3d-msg, #poke-img").forEach(el => el.remove());
 
     if (modo3DActivo) {

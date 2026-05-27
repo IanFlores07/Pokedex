@@ -103,10 +103,10 @@ html, body {
 }
 
 /* ==========================================================================
-   ESTRUCTURA DE TRES ZONAS EQUITATIVAS (33.33% CADA UNA SIN EXTRA)
+   ESTRUCTURA DE TRES ZONAS EQUITATIVAS
    ========================================================================== */
 .dynamic-zone-wrapper { 
-    width: 66.66%; /* El bloque central + bloque derecho ocupan las 2/3 partes restantes */
+    width: 66.66%; 
     display: flex; 
     height: 100%; 
 }
@@ -121,7 +121,7 @@ html, body {
     gap: 15px; 
 }
 
-/* ZONA 1: COLUMNA IZQUIERDA (33.33% REAL) */
+/* ZONA 1: COLUMNA IZQUIERDA */
 .view-left { 
     width: 33.33%; 
     display: flex; 
@@ -152,10 +152,6 @@ html, body {
     max-width: 85%; 
     object-fit: contain; 
 }
-.img-box canvas {
-    width: 100% !important;
-    height: 100% !important;
-}
 
 .forms-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .btn-form-variant {
@@ -176,7 +172,7 @@ html, body {
 .nav-arrows { display: flex; gap: 4px; }
 .nav-arrows button { flex: 1; background-color: #111; color: #fff; border: 2px solid #000; font-family: 'Press Start 2P', monospace; padding: 6px; cursor: pointer; }
 
-/* ZONA 2: COLUMNA CENTRAL (50% de las 2/3 partes = 33.33% TOTAL) */
+/* ZONA 2: COLUMNA CENTRAL */
 .view-center { 
     width: 50%; 
     padding: 12px; 
@@ -199,12 +195,6 @@ html, body {
     gap: 8px;
 }
 .poke-name { color: #000; font-size: 1.1rem; text-transform: uppercase; font-weight: bold; }
-
-.poke-header-meta {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
 
 .stats-grid { 
     display: grid; 
@@ -249,113 +239,229 @@ html, body {
     overflow-y: auto; 
 }
 
-/* ZONA 3: COLUMNA DERECHA (50% de las 2/3 partes = 33.33% TOTAL) */
 .view-right-panel {
-    width: 50%; 
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    border: 3px solid #000;
-    background-color: #8cb9f1;
-    padding: 12px;
-    border-radius: 6px;
-    height: 100%;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+    height: 100% !important;
 }
 
+/* ==========================================================================
+   SECCIÓN DE EVOLUCIONES - UNIFICADO Y CORREGIDO 100% INTEROPERABLE
+   ========================================================================== */
 .evo-section-box {
-    border: 3px solid #000;
-    background-color: #cef5ff;
-    padding: 10px 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    flex-shrink: 0;
-}
+    flex: 2.2 !important; 
+    display: flex !important;
+    flex-direction: column !important;
+    border: 2px solid #000 !important;
+    background: #fff !important;
+    overflow: visible !important; /* CORRECCIÓN: Permite salir las flechas */
+    padding: 6px !important;
+}   
+
 .evo-title-label { font-size: 0.6rem; color: #000; text-align: center; font-weight: bold; }
 
-.evo-flex-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    overflow-x: auto;
-    padding: 4px 0;
+/* Contenedor adaptado para evoluciones secuenciales / estándar (1 a 3 nodos) */
+.evo-flex-linear {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    height: 100% !important;
+    position: relative !important;
 }
 
-/* AJUSTE CLAVE: Cajas de evoluciones más grandes y elásticas para los nombres completos */
+/* Contenedor Maestro para la estructura ramificada (Eevee) */
+.evo-tree-container {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+    gap: 4px !important;
+    overflow-y: auto !important;
+    overflow-x: visible !important;
+}
+
+.evo-top-row {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    position: relative !important;
+}
+
+.evo-arrows-row {
+    display: flex !important;
+    justify-content: space-around !important;
+    width: 75% !important;
+    color: #000 !important;
+    font-size: 0.7rem !important;
+    font-weight: bold !important;
+    margin: -2px 0 !important;
+}
+
+.evo-grid-branches {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important; 
+    gap: 5px !important;
+    width: 100% !important;
+}
+
+/* El Nodo base unificado */
 .evo-poke-node {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    background-color: #fff;
-    border: 2px solid #000;
-    padding: 6px 4px;
-    border-radius: 5px;
-    min-width: 82px; /* Ampliado para dar base suficiente a textos largos */
-    flex-grow: 1;    /* Permite que se autoajuste si el nombre requiere espacio */
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    background-color: #fff !important;
+    border: 2px solid #000 !important;
+    padding: 4px 2px !important;
+    border-radius: 4px !important;
+    box-shadow: 2px 2px 0px #000000 !important;
+    position: relative !important; /* Asegura posicionamiento de pseudo-elementos */
+    z-index: 10 !important;
+    transition: background-color 0.1s ease;
 }
-.evo-poke-node:hover { background-color: #ffcc00; }
-.evo-poke-node img { 
-    width: 64px; height: 64px; object-fit: contain; 
-}
+.evo-poke-node:hover { background-color: #ffcc00 !important; }
 
-/* Letra escalada y sin truncar para que quepa cualquier nombre sin romperse */
+/* Tamaños de imágenes controlados de acuerdo al tipo de flujo */
+.evo-flex-linear .evo-poke-node {
+    width: 85px !important;
+    height: 90px !important;
+}
+.evo-flex-linear .evo-poke-node img { width: 56px !important; height: 56px !important; object-fit: contain; }
+
+.evo-tree-container .evo-poke-node {
+    width: 100% !important;
+    min-width: 0 !important; 
+}
+.evo-tree-container .evo-top-row .evo-poke-node {
+    width: 65px !important;
+}
+.evo-tree-container .evo-poke-node img { width: 36px !important; height: 36px !important; object-fit: contain; }
+
 .evo-poke-node span { 
-    font-size: 0.42rem; 
-    color: #000; 
-    font-weight: bold; 
-    margin-top: 5px; 
-    text-transform: uppercase;
-    text-align: center;
-    white-space: nowrap; /* Evita que salte de línea de forma fea */
+    font-size: 0.38rem !important; 
+    color: #000 !important; 
+    font-weight: bold !important; 
+    margin-top: 3px !important; 
+    text-transform: uppercase !important; 
+    text-align: center !important; 
+    white-space: nowrap !important; 
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    width: 100% !important;
 }
-.evo-arrow { font-size: 0.6rem; color: #000; font-weight: bold; padding: 0 2px; }
+/* Ocultamos las flechas HTML originales para inyectarlas por CSS */
+.evo-arrow { display: none !important; }
 
+
+/* ==========================================================================
+   FLECHAS PARA LÍNEAS NORMALES (◄ ►)
+   ========================================================================== */
+/* Inyecta la flecha horizontal ► antes de cada nodo subsiguiente */
+.evo-flex-linear .evo-poke-node ~ .evo-poke-node::before {
+    content: "►" !important;
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 0.6rem !important;
+    color: #000 !important;
+    font-weight: bold !important;
+    position: absolute !important;
+    left: -12px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    z-index: 99 !important;
+}
+
+
+/* ==========================================================================
+   FLECHAS PARA EL ÁRBOL DE EEVEE (▼ ▲) - CORRECCIÓN DE POSICIÓN
+   ========================================================================== */
+
+/* 1. Preparamos el contenedor general para que no corte los elementos visuales */
+.evo-tree-container,
+.evo-section-box {
+    overflow: visible !important;
+}
+
+/* 2. Aplica separación vertical real para que las flechas quepan holgadamente */
+.evo-top-row {
+    margin-bottom: 24px !important; /* Espacio para que respire la primera fila */
+}
+.evo-grid-branches {
+    margin-top: 14px !important; /* Margen para evitar colisiones con la barra conector */
+}
+
+/* 3. La flecha principal: sale de Eevee (el 1er hijo) y apunta a los demás (▼) */
+.evo-tree-container .evo-top-row .evo-poke-node::after {
+    content: "▼" !important;
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 11px !important;
+    color: #000000 !important;
+    position: absolute !important;
+    bottom: -22px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 9999 !important;
+}
+
+/* 4. Flechas indicadoras individuales que apuntan a cada una de las evoluciones inferiores (▲) */
+.evo-grid-branches .evo-poke-node::before {
+    content: "▲" !important;
+    font-family: 'Press Start 2P', monospace !important;
+    font-size: 9px !important;
+    color: #000000 !important;
+    position: absolute !important;
+    top: -18px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 9999 !important;
+}
+
+
+/* ==========================================================================
+   ARREGLO DE LA TABLA DE MOVIMIENTOS: MÁS GRANDE Y LEGIBLE
+   ========================================================================== */
 .moves-section-box {
-    border: 3px solid #000;
-    background-color: #cef5ff;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    overflow: hidden;
+    flex: 1 !important; 
+    height: auto !important; /* Quitamos la altura rígida para que respire */
+    min-height: 130px !important; /* Forzamos una altura mínima mayor */
+    max-height: none !important; /* Rompemos el techo de altura */
+    display: flex !important;
+    flex-direction: column !important;
+    border: 2px solid #000 !important;
+    background: #fff !important;
+    overflow: hidden !important; 
 }
-.moves-title-label { font-size: 0.6rem; color: #000; text-align: center; font-weight: bold; padding: 4px; }
-.moves-table-scroll-wrapper {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 4px;
-}
-.moves-retro-table {
-    width: 100%;
-    border-collapse: collapse;
-}
+
+.moves-title-label { font-size: 0.65rem !important; color: #000; text-align: center; font-weight: bold; padding: 6px !important; }
+.moves-table-scroll-wrapper { flex-grow: 1; overflow-y: auto; padding: 4px; }
+.moves-retro-table { width: 100%; border-collapse: collapse; }
+
 .moves-retro-table th, .moves-retro-table td {
-    font-size: 0.5rem;
-    padding: 6px 4px;
-    text-align: center;
-    border-bottom: 1px dashed #000;
+    font-size: 0.55rem !important; /* Tipografía más grande en toda la tabla */
+    padding: 8px 4px !important; /* Más espacio de relleno vertical */
+    text-align: center; 
+    border-bottom: 1px dashed #000; 
     color: #000;
 }
-.moves-retro-table th {
-    background-color: #000;
-    color: #fff;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-}
+.moves-retro-table th { background-color: #000; color: #fff; position: sticky; top: 0; z-index: 10; }
+
 .move-type-pill {
-    font-size: 0.45rem;
-    padding: 2px;
-    color: #fff;
+    font-size: 0.5rem !important; /* Píldoras de tipo más grandes */
+    padding: 4px !important; /* Más padding para la píldora */
+    color: #fff; 
     text-shadow: 1px 1px 0px #000;
-    border: 1px solid #000;
-    text-transform: uppercase;
-    font-weight: bold;
-    display: block;
+    border: 1px solid #000; 
+    text-transform: uppercase; 
+    font-weight: bold; 
+    display: block; 
     text-align: center;
 }
+
 
 /* ==========================================================================
    VISTA DE LISTAS DE GENERACIONES MEJORADA
@@ -383,20 +489,11 @@ html, body {
     text-align: center;
 }
 .black-info-box h2 { font-size: 12px; color: #ffcc00; margin: 0; text-transform: uppercase; }
-.black-info-box p { 
-    font-size: 8px; 
-    margin: 0; 
-    color: #fff; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    flex-wrap: wrap; 
-    gap: 4px; 
-}
 
 .grid-gens-3x3 {
     display: grid;
-    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-columns: repeat(3, 1fr) !important; 
+    grid-auto-rows: min-content;                      
     gap: 14px;
     overflow-y: auto;
     flex-grow: 1;
@@ -416,6 +513,7 @@ html, body {
     cursor: pointer;
     box-shadow: 4px 4px 0px #000000;
     min-height: 95px;
+    height: fit-content;      
 }
 .item-poke-minimal:hover { background-color: #ffcc00; }
 
@@ -434,13 +532,13 @@ html, body {
 }
 
 /* BARRAS DE DESPLAZAMIENTO RETRO PIXEL */
-.desc-box::-webkit-scrollbar, .grid-gens-3x3::-webkit-scrollbar, .moves-table-scroll-wrapper::-webkit-scrollbar {
+.desc-box::-webkit-scrollbar, .grid-gens-3x3::-webkit-scrollbar, .moves-table-scroll-wrapper::-webkit-scrollbar, .evo-tree-container::-webkit-scrollbar {
     width: 14px;
 }
-.desc-box::-webkit-scrollbar-track, .grid-gens-3x3::-webkit-scrollbar-track, .moves-table-scroll-wrapper::-webkit-scrollbar-track {
+.desc-box::-webkit-scrollbar-track, .grid-gens-3x3::-webkit-scrollbar-track, .moves-table-scroll-wrapper::-webkit-scrollbar-track, .evo-tree-container::-webkit-scrollbar-track {
     background-color: #000000;
 }
-.desc-box::-webkit-scrollbar-thumb, .grid-gens-3x3::-webkit-scrollbar-thumb, .moves-table-scroll-wrapper::-webkit-scrollbar-thumb {
+.desc-box::-webkit-scrollbar-thumb, .grid-gens-3x3::-webkit-scrollbar-thumb, .moves-table-scroll-wrapper::-webkit-scrollbar-thumb, .evo-tree-container::-webkit-scrollbar-thumb {
     background-color: #ffcc00;
     border: 3px solid #000000;
 }
