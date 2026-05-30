@@ -51,15 +51,15 @@ html, body {
 
 #gens-box {
     position: absolute;
-    top: 45px;
-    right: 235px;
+    top: 60px; /* Se posiciona justo debajo del botón */
+    right: 20px; /* Alineado perfectamente con el borde derecho de la Pokédex */
     background-color: #222222;
     border: 4px solid #000000;
     padding: 10px;
     display: grid;
     grid-template-columns: repeat(2, 95px); 
     gap: 8px;
-    z-index: 200;
+    z-index: 99999; /* Fuerza a que flote por encima de cualquier vista */
     box-shadow: 4px 4px 0px #000;
 }
 #gens-box.collapsed { display: none !important; }
@@ -168,10 +168,30 @@ html, body {
     box-shadow: 2px 2px 0px #000;
 }
 
-.nav-controls { display: flex; flex-direction: column; gap: 4px; }
-.nav-arrows { display: flex; gap: 4px; }
-.nav-arrows button { flex: 1; background-color: #111; color: #fff; border: 2px solid #000; font-family: 'Press Start 2P', monospace; padding: 6px; cursor: pointer; }
+.btn-lista {
+    width: 100% !important; /* Ocupa el ancho completo, idéntico al botón de vista 3D */
+    padding: 6px 0 !important;
+    display: block !important;
+}
 
+.nav-controls {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    width: 100% !important;
+}
+
+.nav-arrows {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    width: 100% !important;
+}
+
+.nav-arrows button {
+    flex: 1 !important; /* Cada flecha ocupa la mitad exacta de la fila */
+    padding: 4px 0 !important;
+}
 /* ZONA 2: COLUMNA CENTRAL */
 .view-center { 
     width: 50%; 
@@ -250,14 +270,20 @@ html, body {
    SECCIÓN DE EVOLUCIONES - UNIFICADO Y CORREGIDO 100% INTEROPERABLE
    ========================================================================== */
 .evo-section-box {
-    flex: 2.2 !important; 
+    flex: 1.2 !important; /* Ajustado: Reducido lo justo para dar espacio abajo sin romper las letras */
     display: flex !important;
     flex-direction: column !important;
     border: 2px solid #000 !important;
     background: #fff !important;
-    overflow: visible !important; /* CORRECCIÓN: Permite salir las flechas */
+    overflow: hidden !important; /* Cambiado a hidden para que respete los bordes de la caja */
     padding: 6px !important;
-}   
+}
+
+/* NUEVO: Esto quita las flechas de arriba de las evoluciones de Eevee */
+.evo-grid-branches .evo-poke-node::before {
+    display: none !important;
+    content: "" !important;
+}
 
 .evo-title-label { font-size: 0.6rem; color: #000; text-align: center; font-weight: bold; }
 
@@ -408,33 +434,13 @@ html, body {
     z-index: 9999 !important;
 }
 
-/* 4. Flechas indicadoras individuales que apuntan a cada una de las evoluciones inferiores (▲) */
-.evo-grid-branches .evo-poke-node::before {
-    content: "▲" !important;
-    font-family: 'Press Start 2P', monospace !important;
-    font-size: 9px !important;
-    color: #000000 !important;
-    position: absolute !important;
-    top: -18px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    z-index: 9999 !important;
-}
-
-
-/* ==========================================================================
-   ARREGLO DE LA TABLA DE MOVIMIENTOS: MÁS GRANDE Y LEGIBLE
-   ========================================================================== */
 .moves-section-box {
-    flex: 1 !important; 
-    height: auto !important; /* Quitamos la altura rígida para que respire */
-    min-height: 130px !important; /* Forzamos una altura mínima mayor */
-    max-height: none !important; /* Rompemos el techo de altura */
+    flex: 1.8 !important; /* Aumentado: Absorbe el espacio ganado y muestra más filas de ataques */
     display: flex !important;
     flex-direction: column !important;
     border: 2px solid #000 !important;
     background: #fff !important;
-    overflow: hidden !important; 
+    overflow: hidden !important;
 }
 
 .moves-title-label { font-size: 0.65rem !important; color: #000; text-align: center; font-weight: bold; padding: 6px !important; }
@@ -550,3 +556,82 @@ html, body {
     font-size: 0.65rem; padding: 12px 24px; cursor: pointer; box-shadow: 3px 3px 0px #000; 
 }
 .btn-menu-back:hover { background-color: #ffcc00; color: #000; }
+
+/* Quitar el texto repetido o marcas de fondo que aparecen detrás del Pokémon */
+.img-box::before {
+    display: none !important;
+    content: "" !important;
+}
+
+/* Dar color retro amarillo y bordes a los botones de flecha de navegación */
+button[onclick*="cambiarPokemon"] {
+    background-color: #000000 !important;   
+    color: #ffffff !important;              
+    border: 2px solid #000000 !important;    
+    box-shadow: 2px 2px 0px #2f2f2f !important; 
+    font-family: 'Press Start 2P', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 5px 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.05s ease;
+}
+
+/* Efecto de hundimiento retro al pulsar los botones */
+button[onclick*="cambiarPokemon"]:active {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0px #000000 !important;
+}
+
+/* Contenedor de tipos debajo de ALT y PES */
+.tipos-container-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Cada barra de tipo individual (Fuerza los 32px exactos de alto) */
+.tipos-container-grid .stat-item-tipo {
+    display: flex !important;
+    align-items: center !important;
+    border: 2px solid #000 !important;
+    height: 32px !important;
+    background-color: #cef5ff;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Ajuste de la etiqueta negra (Fuerza los 65px de ancho y centra el texto verticalmente) */
+.tipos-container-grid .stat-label-tipo {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    font-size: 0.55rem !important;
+    width: 65px !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important; /* Centra el texto 'TIPO 1' para que no se corte */
+    font-weight: bold !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box;
+}
+
+/* Contenedor del valor/nombre del tipo (Alineación perfecta) */
+.tipos-container-grid .stat-value-tipo {
+    font-size: 0.65rem !important;
+    flex-grow: 1 !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    text-transform: uppercase;
+    box-sizing: border-box;
+}

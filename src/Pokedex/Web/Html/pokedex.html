@@ -17,99 +17,62 @@
                 <h1 class="pokedex-title">POKÉDEX</h1>
             </div>
             <div class="header-right-controls">
-                <button id="btn-toggle-gens" class="btn-toggle-gens">[+] GENS</button>
-                <button id="btn-all-pokes" class="btn-all">TODAS</button>
+                <div style="position: relative; display: inline-block;">
+                    <button id="btn-toggle-gens" class="btn-toggle-gens">[+] GENS</button>
+                    <div id="gens-box" class="gens-container-box collapsed">
+                        <button onclick="window.seleccionarGenFiltro(1)">GEN 1</button>
+                        <button onclick="window.seleccionarGenFiltro(2)">GEN 2</button>
+                        <button onclick="window.seleccionarGenFiltro(3)">GEN 3</button>
+                        <button onclick="window.seleccionarGenFiltro(4)">GEN 4</button>
+                        <button onclick="window.seleccionarGenFiltro(5)">GEN 5</button>
+                        <button onclick="window.seleccionarGenFiltro(6)">GEN 6</button>
+                        <button onclick="window.seleccionarGenFiltro(7)">GEN 7</button>
+                        <button onclick="window.seleccionarGenFiltro(8)">GEN 8</button>
+                        <button onclick="window.seleccionarGenFiltro(9)">GEN 9</button>
+                        <button onclick="window.seleccionarGenFiltro(10)">GEN 10</button>
+                    </div>
+                </div>
+                <button id="btn-all-pokes" class="btn-all" onclick="window.mostrarTodasLasGeneraciones()">TODAS</button>
                 <input type="text" id="poke-search" placeholder="BUSCAR..." autocomplete="off">
             </div>
         </div>
 
-        <div id="gens-box" class="gens-container-box collapsed">
-            <div class="gen-row">
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(1)">GEN 1</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(2)">GEN 2</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(3)">GEN 3</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(4)">GEN 4</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(5)">GEN 5</button>
-            </div>
-            <div class="gen-row">
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(6)">GEN 6</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(7)">GEN 7</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(8)">GEN 8</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(9)">GEN 9</button>
-                <button class="gen-btn-retro" onclick="seleccionarGenFiltro(10)">GEN 10</button>
-            </div>
-        </div>
-
-        <div id="pokedex-screen" class="pokedex-screen">
+        <div class="pokedex-screen">
             
-            <div id="left-column" class="view-left">
-                <div class="img-box" id="media-display-box">
-                    <img id="poke-img" src="" alt="Pokemon">
-                    <button id="btn-fullscreen-3d" class="icon-fullscreen-inside hidden" onclick="abrirModalGigante3D()">⛶ AMPLIAR</button>
+            <div class="view-left" id="left-column" style="display: none;">
+                <div class="img-box" id="caja-render-imagen">
+                    <img id="sprite-poke-detail" src="" alt="Pokemon Art">
                 </div>
-                
+                <div class="big-id" id="poke-id">#---</div>
                 <div class="forms-grid">
-                    <button id="btn-var-regular" class="btn-form-variant active" onclick="cambiarVariante('regular')">NORMAL</button>
-                    <button id="btn-var-shiny" class="btn-form-variant" onclick="cambiarVariante('shiny')">SHINY</button>
+                    <button class="btn-form-variant active" id="btn-var-reg" onclick="window.cambiarVarianteVisual('regular')">NORMAL</button>
+                    <button class="btn-form-variant" id="btn-var-shiny" onclick="window.cambiarVarianteVisual('shiny')">SHINY</button>
                 </div>
-
-                <div class="big-id" id="poke-id">#001</div>
-                
                 <div class="media-toggle-buttons">
-                    <button id="btn-toggle-3d" class="btn-3d" onclick="toggleModo3D()">VER 3D</button>
+                    <button class="btn-3d" id="btn-toggle-3d" onclick="window.toggleModo3D()">VISTA 3D</button>
                 </div>
-
                 <div class="nav-controls">
                     <div class="nav-arrows">
-                        <button onclick="cambiarPokemon(-1)">&lt;</button>
-                        <button onclick="cambiarPokemon(1)">&gt;</button>
+                        <button onclick="window.cambiarPokemon(-1)">◄</button>
+                        <button onclick="window.cambiarPokemon(1)">►</button>
                     </div>
-                    <button class="btn-lista" id="btn-toggle-lista-vista" onclick="toggleVistaLista()">LISTA</button>
+                    <button class="btn-lista" onclick="window.toggleVistaLista()">VOLVER</button>
                 </div>
             </div>
 
-            <div id="dynamic-zone" class="dynamic-zone-wrapper"></div>
+            <div class="dynamic-zone-wrapper full-screen-zone" id="dynamic-zone">
+                </div>
+
         </div>
 
         <div class="pokedex-footer">
-            <button id="btn-back-menu" class="btn-menu-back">VOLVER AL MENÚ</button>
-        </div>
-    </div>
-
-    <div id="modal-3d-giant" class="modal-giant-dark" onclick="cerrarModalGigante3D()">
-        <div class="contenido-modal-giant" onclick="event.stopPropagation()">
-            <span class="cerrar-giant" onclick="cerrarModalGigante3D()">&times;</span>
-            <div id="contenedor-render-giant" class="contenedor-render-giant"></div>
-        </div>
-    </div>
-
-    <div id="modal-moves" class="moves-popup-overlay" style="display: none;">
-        <div class="moves-popup-content">
-            <div class="moves-popup-header">
-                <h3 class="moves-popup-title">MOVES LIST</h3>
-                <span class="btn-close-popup" onclick="window.cerrarModalMoves()">&times;</span>
-            </div>
-            <div class="moves-popup-body">
-                <table class="moves-table">
-                    <thead>
-                        <tr>
-                            <th>MOVIMIENTO</th>
-                            <th>TIPO</th>
-                            <th>CAT</th>
-                            <th>POW</th>
-                            <th>ACC</th>
-                        </tr>
-                    </thead>
-                    <tbody id="moves-list-tbody"></tbody>
-                </table>
-            </div>
+            <button class="btn-menu-back">VOLVER AL MENÚ PRINCIPAL</button>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
-
     <script src="../Js/pokedex.js"></script>
 </body>
 </html>
