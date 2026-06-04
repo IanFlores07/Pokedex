@@ -479,6 +479,26 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 15px;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+}
+
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar {
+    width: 12px !important;              /* Ancho idéntico */
+    background: #cef5ff !important;      /* Fondo azul claro de la interfaz */
+    border-left: 2px solid #000 !important; /* Separación con línea negra */
+}
+
+/* El tirador o bloque de arrastre (Scrollbar Thumb) */
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: #000000 !important;   /* Bloque negro puro */
+    border: 2px solid #cef5ff !important;    /* Margen interno para que no pegue al borde */
+    border-radius: 0px !important;          /* Esquinas completamente rectas y pixeladas */
+}
+
+/* Opcional: Cambio de color al pasar el ratón por encima del tirador */
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #333333 !important;
 }
 
 .black-info-box {
@@ -634,4 +654,27 @@ button[onclick*="cambiarPokemon"]:active {
     text-align: center !important;
     text-transform: uppercase;
     box-sizing: border-box;
+}
+
+/* =========================================================================
+   BARRA DE SCROLL IDÉNTICA A LA DE MOVIMIENTOS
+   ========================================================================= */
+
+/* Aplicamos el diseño retro al contenedor de la lista de Todas las Generaciones */
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar {
+    width: 12px !important;              /* Ancho idéntico */
+    background: #cef5ff !important;      /* Fondo azul claro de la interfaz */
+    border-left: 2px solid #000 !important; /* Separación con línea negra */
+}
+
+/* El tirador o bloque de arrastre (Scrollbar Thumb) */
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background-color: #000000 !important;   /* Bloque negro puro */
+    border: 2px solid #cef5ff !important;    /* Margen interno para que no pegue al borde */
+    border-radius: 0px !important;          /* Esquinas completamente rectas y pixeladas */
+}
+
+/* Opcional: Cambio de color al pasar el ratón por encima del tirador */
+.retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #333333 !important;
 }

@@ -29,6 +29,8 @@ const traduccionTipos = {
     dark: "SINIESTRO", steel: "ACERO", fairy: "HADA"
 };
 
+
+
 const rangosGeneracionesPokedex = {
     1: { start: 1, end: 151, nombre: "Gen 1", region: "Kanto", games: [{ text: "ROJO", color: "#ff1111" }, { text: "AZUL", color: "#1155ff" }, { text: "AMARILLO", color: "#ffd400" }] },
     2: { start: 152, end: 251, nombre: "Gen 2", region: "Johto", games: [{ text: "ORO", color: "#d4b35e" }, { text: "PLATA", color: "#cccccc" }, { text: "CRISTAL", color: "#a1e5ff" }] },
@@ -38,22 +40,84 @@ const rangosGeneracionesPokedex = {
     6: { start: 650, end: 721, nombre: "Gen 6", region: "Kalos", games: [{ text: "X", color: "#0055ff" }, { text: "Y", color: "#ff2233" }] },
     7: { start: 722, end: 809, nombre: "Gen 7", region: "Alola", games: [{ text: "SOL", color: "#ff8811" }, { text: "LUNA", color: "#5555ff" }] },
     8: { start: 810, end: 905, nombre: "Gen 8", region: "Galar", games: [{ text: "ESPADA", color: "#00ccee" }, { text: "ESCUDO", color: "#ff0066" }] },
-    9: { start: 906, end: 1025, nombre: "Gen 9", region: "Paldea", games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] }
+    9: { start: 906, end: 1025, nombre: "Gen 9", region: "Paldea", games: [{ text: "ESCARLATA", color: "#ff3311" }, { text: "PÚRPURA", color: "#aa22ff" }] },
+    10: { start: 1026, end: 1028, nombre: "Gen 10", region: "SIN REGIÓN", games: [{ text: "WINDS", color: "#00ccee" }, { text: "WAVES", color: "#1155ff" }] }
 };
 
 function formatPaddedId(id) {
     return String(id).padStart(3, '0');
 }
 
+function conmutarLayoutEntorno(modo) {
+    const leftColumn = document.getElementById("left-column");
+    const dynamicZone = document.getElementById("dynamic-zone");
+    
+    if (modo === "lista") {
+        if (leftColumn) leftColumn.style.display = "none";
+        if (dynamicZone) {
+            dynamicZone.classList.add("full-screen-zone");
+            dynamicZone.style.width = "100%";
+            dynamicZone.style.minWidth = "100%";
+        }
+    } else if (modo === "detalle") {
+        if (leftColumn) leftColumn.style.display = "flex";
+        if (dynamicZone) {
+            dynamicZone.classList.remove("full-screen-zone");
+            dynamicZone.style.width = "";
+            dynamicZone.style.minWidth = "";
+        }
+    }
+}
+
+// Diccionario de traducciones para variantes y formas Paradox que vienen en inglés en los listados
+const traduccionNombresEspeciales = {
+    "RAGING-BOLT": "ELECTROFURIA",
+    "WALKING-WAKE": "ONDULAGUA",
+    "GOUGING-FIRE": "FLAMARIETE",
+    "IRON-LEAVES": "FERROVERDOR",
+    "IRON-CROWN": "FERROTESTA",
+    "IRON-BOULDER": "FERROTESTA", // Ajusta si prefieres Ferromira u otro
+    "GREAT-TUSK": "COLMILLOLARGO",
+    "SCREAM-TAIL": "COLAGRITO",
+    "BRUTE-BONNET": "FURIOSETA",
+    "FLUTTER-MANE": "MELENALALTEO",
+    "SLITHER-WING": "REPTALADA",
+    "SANDY-SHOCKS": "PELARENA",
+    "IRON-TREADS": "FERROADA",
+    "IRON-BUNDLE": "FERROSACO",
+    "IRON-HANDS": "FERROMANO",
+    "IRON-JUGULIS": "FERROJUGULIS",
+    "IRON-MOTH": "FERROPOLILLA",
+    "IRON-THORNS": "FERROPÚA",
+    "ROARING-MOON": "BRAMALUNA",
+    "IRON-VALIANT": "FERROPALADÍN"
+};
+
 async function precargarCatalogoBuscar() {
     try {
         let res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
         if (res.ok) {
             let data = await res.json();
-            pokedexNombresGlobales = data.results.map((p, index) => ({
-                id: index + 1,
-                name: p.name.toUpperCase()
-            }));
+            pokedexNombresGlobales = data.results.map((p, index) => {
+                let id = index + 1;
+                let nombreOriginal = p.name.toUpperCase();
+                
+                // Si el nombre está en nuestro diccionario especial, lo traducimos
+                if (traduccionNombresEspeciales[nombreOriginal]) {
+                    nombreOriginal = traduccionNombresEspeciales[nombreOriginal];
+                }
+
+                return {
+                    id: id,
+                    name: nombreOriginal
+                };
+            });
+
+            pokedexNombresGlobales.push(
+                { id: 1026, name: "BROWT" },
+                { id: 1027, name: "POMBON" },
+                { id: 1028, name: "GECQUA" }
+            );
         }
     } catch (e) { console.log("Error precargando buscador global."); }
 }
@@ -61,12 +125,10 @@ async function precargarCatalogoBuscar() {
 window.mostrarPantallaInicialOcupandoTodo = function() {
     vistaActual = "lista"; 
     currentPokemonId = null;
-    const leftColumn = document.getElementById("left-column");
-    if(leftColumn) leftColumn.style.display = "none";
+    conmutarLayoutEntorno("lista");
     
     const dynamicZone = document.getElementById("dynamic-zone");
     if(dynamicZone) {
-        dynamicZone.classList.add("full-screen-zone");
         dynamicZone.innerHTML = `
             <div style="display:flex; justify-content:center; align-items:center; height:100%; width:100%;">
                 <h2 style="font-family:'Press Start 2P', monospace; font-size:11px; color:#000; text-align:center; line-height:2;">
@@ -80,11 +142,18 @@ window.mostrarPantallaInicialOcupandoTodo = function() {
 };
 
 window.seleccionarGenFiltro = function(numGen) {
+    if (numGen === 'all') {
+        idGenActiva = 'all';
+    } else {
+        idGenActiva = parseInt(numGen);
+    }
+    
     const gensBox = document.getElementById("gens-box");
     if (gensBox) gensBox.classList.add("collapsed"); 
     const searchInput = document.getElementById("poke-search");
     if (searchInput) searchInput.value = "";
     bloqueadoPorBuscador = false;
+    
     window.mostrarCajaGeneracionDetalle(numGen);
 };
 
@@ -96,7 +165,6 @@ window.aplicarFiltroBuscador = function() {
     
     const query = searchInput.value.toLowerCase().trim();
     const dynamicZone = document.getElementById("dynamic-zone");
-    const leftColumn = document.getElementById("left-column");
 
     if (query === "") {
         if (bloqueadoPorBuscador) {
@@ -108,10 +176,9 @@ window.aplicarFiltroBuscador = function() {
 
     bloqueadoPorBuscador = true;
     vistaActual = "lista";
+    conmutarLayoutEntorno("lista");
 
-    if (leftColumn) leftColumn.style.display = "none";
     if (dynamicZone) {
-        dynamicZone.classList.add("full-screen-zone");
         dynamicZone.innerHTML = `
             <div class="retro-gen-layout">
                 <div class="black-info-box">
@@ -141,9 +208,6 @@ window.aplicarFiltroBuscador = function() {
         tarjetaPoke.onclick = () => {
             if (searchInput) searchInput.value = "";
             bloqueadoPorBuscador = false;
-            if (leftColumn) leftColumn.style.display = "flex";
-            if (dynamicZone) dynamicZone.classList.remove("full-screen-zone");
-            vistaActual = "detalle";
             window.cargarPokemonData(poke.id);
         };
         tarjetaPoke.innerHTML = `<span class="poke-num">#${numPadded}</span><span class="poke-name">${poke.name}</span>`;
@@ -171,18 +235,70 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 window.mostrarCajaGeneracionDetalle = async function(numGen) {
-    idGenActiva = numGen; 
+    if (numGen === 'all') {
+        idGenActiva = 'all';
+    } else {
+        idGenActiva = parseInt(numGen);
+    }
     vistaActual = "lista";
-    const leftColumn = document.getElementById("left-column");
-    if (leftColumn) leftColumn.style.display = "none";
+    conmutarLayoutEntorno("lista");
 
     const dynamicZone = document.getElementById("dynamic-zone");
     if (!dynamicZone) return;
-    dynamicZone.classList.add("full-screen-zone");
+
+    if (numGen === 'all') {
+        dynamicZone.innerHTML = `
+            <div class="retro-gen-layout" style="height: 100%; display: flex; flex-direction: column;">
+                <div class="moves-table-scroll-wrapper" style="flex: 1; width: 100%; overflow-y: auto; padding-right: 4px;">
+                    <div id="contenedor-todas-gens" style="display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                        <p style="font-size: 8px; color: #000; padding: 10px;">GENERANDO CATÁLOGO NACIONAL COMPLETO...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        let contenedorGlobal = document.getElementById("contenedor-todas-gens");
+        let htmlCompleto = "";
+
+        for (let g = 1; g <= 10; g++) {
+            let rango = rangosGeneracionesPokedex[g];
+            if (!rango) continue;
+
+            let juegosHtml = "";
+            rango.games.forEach(game => {
+                let borderStyle = game.border ? `border:1px solid ${game.border};` : 'border:1px solid #000;';
+                let textColor = game.color === "#ffffff" ? "#000" : "#fff";
+                juegosHtml += `<span style="background:${game.color}; color:${textColor}; padding:2px 4px; font-size:0.5rem; margin-left:4px; font-weight:bold; ${borderStyle}">${game.text}</span>`;
+            });
+
+            htmlCompleto += `
+                <div class="black-info-box" style="margin-top: ${g === 1 ? '0' : '25px'}; width: 100%; flex-shrink: 0;">
+                    <h2 style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; font-size: 10px;">
+                        GEN ${g} - ${rango.region.toUpperCase()} ${juegosHtml}
+                    </h2>
+                </div>
+                <div class="grid-gens-3x3" id="grid-gen-all-${g}" style="overflow: visible; width: 100%;">
+            `;
+
+            for (let id = rango.start; id <= rango.end; id++) {
+                let cachedObj = pokedexNombresGlobales.find(p => p.id === id);
+                let nombrePoke = cachedObj ? cachedObj.name : `POKEMON #${id}`;
+                let numPadded = formatPaddedId(id);
+
+                htmlCompleto += `
+                    <div class="item-poke-minimal" onclick="window.cargarPokemonData(${id});">
+                        <span class="poke-num">#${numPadded}</span><span class="poke-name">${nombrePoke}</span>
+                    </div>
+                `;
+            }
+            htmlCompleto += `</div>`; 
+        }
+
+        if (contenedorGlobal) contenedorGlobal.innerHTML = htmlCompleto;
+        return;
+    }
 
     const rango = rangosGeneracionesPokedex[numGen];
-
-    // Generamos las etiquetas de los juegos aquí
     let juegosHtml = "";
     if (rango && rango.games) {
         rango.games.forEach(g => {
@@ -196,7 +312,7 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
         <div class="retro-gen-layout">
             <div class="black-info-box">
                 <h2 style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0;">
-                    GEN ${numGen} - ${rango.region.toUpperCase()} ${juegosHtml}
+                    GEN ${numGen} - ${rango?.region?.toUpperCase() || "DESCONOCIDA"} ${juegosHtml}
                 </h2>
             </div>
             <div id="grid-pokes-3x3" class="grid-gens-3x3">
@@ -205,13 +321,35 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
         </div>
     `;
 
+    if (parseInt(numGen) === 10) {
+        const gridContenedor = document.getElementById("grid-pokes-3x3");
+        if (!gridContenedor) return;
+        gridContenedor.innerHTML = "";
+
+        let gen10Local = pokedexNombresGlobales.filter(p => p.id >= rango.start && p.id <= rango.end);
+        gen10Local.forEach(poke => {
+            let numPadded = formatPaddedId(poke.id);
+            let tarjetaPoke = document.createElement("div");
+            tarjetaPoke.className = "item-poke-minimal";
+            tarjetaPoke.onclick = () => { window.cargarPokemonData(poke.id); };
+            tarjetaPoke.innerHTML = `<span class="poke-num">#${numPadded}</span><span class="poke-name">${poke.name}</span>`;
+            gridContenedor.appendChild(tarjetaPoke);
+        });
+        return;
+    }
+
     try {
         let respuesta = await fetch(`https://pokeapi.co/api/v2/generation/${numGen}/`);
         let datosGen = await respuesta.json();
         
         let pokemonListData = datosGen.pokemon_species.map(specie => {
             let id = parseInt(specie.url.split("/").slice(-2, -1)[0]);
-            return { id: id, name: specie.name.toUpperCase() };
+            
+            // Busca si ya ha guardado este ID traducido en nuestro catálogo global
+            let cachedObj = pokedexNombresGlobales.find(p => p.id === id);
+            let nombreFinal = cachedObj ? cachedObj.name : specie.name.toUpperCase();
+
+            return { id: id, name: nombreFinal };
         }).filter(p => p.id >= rango.start && p.id <= rango.end).sort((a, b) => a.id - b.id);
 
         const gridContenedor = document.getElementById("grid-pokes-3x3");
@@ -222,12 +360,7 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
             let numPadded = formatPaddedId(poke.id);
             let tarjetaPoke = document.createElement("div");
             tarjetaPoke.className = "item-poke-minimal";
-            tarjetaPoke.onclick = () => {
-                if (leftColumn) leftColumn.style.display = "flex";
-                dynamicZone.classList.remove("full-screen-zone");
-                vistaActual = "detalle";
-                window.cargarPokemonData(poke.id);
-            };
+            tarjetaPoke.onclick = () => { window.cargarPokemonData(poke.id); };
             tarjetaPoke.innerHTML = `<span class="poke-num">#${numPadded}</span><span class="poke-name">${poke.name}</span>`;
             gridContenedor.appendChild(tarjetaPoke);
         });
@@ -236,6 +369,45 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
 
 window.cargarPokemonData = async function(idOrName) {
     try {
+        let idBuscado = parseInt(idOrName);
+        
+        vistaActual = "detalle";
+        conmutarLayoutEntorno("detalle");
+
+        if (idBuscado >= 1026 && idBuscado <= 1028) {
+            currentPokemonId = idBuscado;
+            
+            let nameGen10 = idBuscado === 1026 ? "browt" : idBuscado === 1027 ? "pombon" : "gecqua";
+            let typeGen10 = idBuscado === 1026 ? "grass" : idBuscado === 1027 ? "fire" : "water";
+
+            let mockData = {
+                id: idBuscado,
+                name: nameGen10,
+                height: 0, weight: 0,
+                stats: [
+                    {stat:{name:"hp"},base_stat: "--"},
+                    {stat:{name:"attack"},base_stat: "--"},
+                    {stat:{name:"defense"},base_stat: "--"},
+                    {stat:{name:"special-attack"},base_stat: "--"},
+                    {stat:{name:"special-defense"},base_stat: "--"},
+                    {stat:{name:"speed"},base_stat: "--"}
+                ],
+                types: [{type:{name: typeGen10}}],
+                moves: []
+            };
+            window.currentPokemonDataStorage = mockData;
+            
+            let mockSpecies = { flavor_text_entries: [{ language: {name: "es"}, flavor_text: "No hay descripción oficial disponible en la base de datos para este Pokémon de la Gen 10." }] };
+            let mockEvo = { chain: { species: { name: nameGen10, url: "" }, evolves_to: [] } };
+
+            const idDisplay = document.getElementById("poke-id");
+            if(idDisplay) idDisplay.innerText = "#" + formatPaddedId(currentPokemonId);
+
+            await window.renderizarVistaDetail(mockData, mockSpecies, mockEvo);
+            window.manejarVisualizacionMedia(mockData);
+            return;
+        }
+
         let res = await fetch(`https://pokeapi.co/api/v2/pokemon/${idOrName.toString().toLowerCase()}`);
         if (!res.ok) return; 
         let data = await res.json();
@@ -244,7 +416,9 @@ window.cargarPokemonData = async function(idOrName) {
         
         for (const genKey in rangosGeneracionesPokedex) {
             if (currentPokemonId >= rangosGeneracionesPokedex[genKey].start && currentPokemonId <= rangosGeneracionesPokedex[genKey].end) {
-                idGenActiva = parseInt(genKey);
+                if (idGenActiva !== 'all') {
+                    idGenActiva = parseInt(genKey);
+                }
                 break;
             }
         }
@@ -264,11 +438,44 @@ window.cargarPokemonData = async function(idOrName) {
 
 window.cambiarPokemon = function(direccion) {
     if (!currentPokemonId) return;
-    let rangoActual = rangosGeneracionesPokedex[idGenActiva];
+    
+    // 1. Detectamos si la rejilla de botones está visible en pantalla ANTES del cambio
+    const rejillaBotonesExiste = document.getElementById("grid-pokes-3x3") || document.getElementById("contenedor-todas-gens");
+    let modoListaActivo = (vistaActual === "lista" || rejillaBotonesExiste);
+    let genAntesDeCambiar = idGenActiva;
+
+    // 2. Calculamos el ID objetivo de forma global (Nacional)
     let objetivoId = currentPokemonId + direccion;
-    if (objetivoId >= rangoActual.start && objetivoId <= rangoActual.end) {
-        window.cargarPokemonData(objetivoId);
-    }
+    if (objetivoId < 1) objetivoId = 1028;
+    if (objetivoId > 1028) objetivoId = 1;
+
+    // 3. Cargamos los datos del nuevo Pokémon
+    window.cargarPokemonData(objetivoId).then(() => {
+        // 4. Si el usuario estaba en modo lista partida, restauramos el entorno inmediatamente
+        if (modoListaActivo) {
+            vistaActual = "lista";
+            conmutarLayoutEntorno("lista");
+
+            // Averiguamos a qué generación pertenece el nuevo ID cargado
+            let nuevaGenCalculada = idGenActiva;
+            for (const genKey in rangosGeneracionesPokedex) {
+                if (objetivoId >= rangosGeneracionesPokedex[genKey].start && objetivoId <= rangosGeneracionesPokedex[genKey].end) {
+                    nuevaGenCalculada = (idGenActiva === 'all') ? 'all' : parseInt(genKey);
+                    break;
+                }
+            }
+
+            // Si el nuevo Pokémon saltó a otra generación, repintamos la cuadrícula derecha
+            if (nuevaGenCalculada !== genAntesDeCambiar && genAntesDeCambiar !== 'all') {
+                idGenActiva = nuevaGenCalculada;
+                window.mostrarCajaGeneracionDetalle(nuevaGenCalculada);
+            } else {
+                // Si seguimos en la misma generación, limpiamos selecciones previas
+                const items = document.querySelectorAll(".item-poke-minimal");
+                items.forEach(item => item.classList.remove("active"));
+            }
+        }
+    });
 };
 
 window.toggleVistaLista = function() {
@@ -276,11 +483,27 @@ window.toggleVistaLista = function() {
 };
 
 window.mostrarTodasLasGeneraciones = function() {
-    console.log("Filtro global activo.");
+    idGenActiva = 'all';
+    
+    const gensBox = document.getElementById("gens-box");
+    if (gensBox) gensBox.classList.add("collapsed"); 
+    const searchInput = document.getElementById("poke-search");
+    if (searchInput) searchInput.value = "";
+    bloqueadoPorBuscador = false;
+    
+    window.mostrarCajaGeneracionDetalle('all');
 };
 
 window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
-    let rango = rangosGeneracionesPokedex[idGenActiva];
+    let activeGenIndex = (idGenActiva === 'all') ? 1 : idGenActiva;
+    for (const genKey in rangosGeneracionesPokedex) {
+        if (data.id >= rangosGeneracionesPokedex[genKey].start && data.id <= rangosGeneracionesPokedex[genKey].end) {
+            activeGenIndex = parseInt(genKey);
+            break;
+        }
+    }
+    
+    let rango = rangosGeneracionesPokedex[activeGenIndex];
     let juegosHtml = "";
     if (rango) {
         rango.games.forEach(g => {
@@ -293,15 +516,59 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     const dynamicZone = document.getElementById("dynamic-zone");
     if(!dynamicZone) return;
 
-    let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es') || { flavor_text: "Sin descripción." };
+    // 1. Intenta buscar la descripción en español
+    let descEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'es');
+    let textoDescripcion = "";
+
+    if (descEntry) {
+        textoDescripcion = descEntry.flavor_text;
+    } else {
+        // 2. Si no hay en español, busca la descripción en inglés
+        let engEntry = speciesData.flavor_text_entries.find(e => e.language.name === 'en');
+        
+        if (engEntry) {
+            let textoIngles = engEntry.flavor_text.replace(/\n|\f/g, ' ');
+            textoDescripcion = textoIngles; // Valor por defecto si la traducción falla
+
+            // 3. Petición asíncrona en segundo plano para traducirlo al castellano
+            fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(textoIngles)}&langpair=en|es`)
+                .then(res => res.json())
+                .then(translateData => {
+                    if (translateData && translateData.responseData && translateData.responseData.translatedText) {
+                        // Limpia entidades extrañas que pueda devolver el traductor
+                        let traduccionLimpia = translateData.responseData.translatedText;
+                        
+                        // Busca la caja de descripción en el DOM y la actualiza en caliente
+                        const descBoxElement = document.querySelector(".desc-box");
+                        if (descBoxElement) {
+                            descBoxElement.innerText = "DESC: " + traduccionLimpia;
+                        }
+                    }
+                })
+                .catch(err => console.log("Error al traducir la descripción:", err));
+        } else {
+            // 4. Si no hay ni en español ni en inglés
+            textoDescripcion = "No hay descripción oficial disponible en la base de datos.";
+        }
+    }
+
+    // === TRADUCCIÓN DEL NOMBRE DEL POKÉMON A CASTELLANO ===
+    let nombreCastellano = data.name.toUpperCase(); // Valor por defecto (inglés)
+    if (speciesData && speciesData.names) {
+        let nameEntry = speciesData.names.find(n => n.language.name === 'es');
+        if (nameEntry) {
+            nombreCastellano = nameEntry.name.toUpperCase();
+        }
+    }
+
     let statPS  = data.stats.find(s => s.stat.name === "hp")?.base_stat || 0;
     let statAT  = data.stats.find(s => s.stat.name === "attack")?.base_stat || 0;
     let statDF  = data.stats.find(s => s.stat.name === "defense")?.base_stat || 0;
     let statSA  = data.stats.find(s => s.stat.name === "special-attack")?.base_stat || 0;
     let statSD  = data.stats.find(s => s.stat.name === "special-defense")?.base_stat || 0;
     let statVEL = data.stats.find(s => s.stat.name === "speed")?.base_stat || 0;
-    let altura  = (data.height / 10) + "m";
-    let peso    = (data.weight / 10) + "kg";
+    let altura  = data.height === 0 ? "DESCONOCIDO" : (data.height / 10) + "m";
+    let peso    = data.weight === 0 ? "DESCONOCIDO" : (data.weight / 10) + "kg";
 
     let tipo1Raw = data.types[0]?.type.name || "-";
     let tipo2Raw = data.types[1]?.type.name || "-";
@@ -312,7 +579,6 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let tipo1BgColor = typeColors[tipo1Raw.toLowerCase()] || "#cef5ff";
     let tipo2BgColor = tipo2Raw !== "-" ? (typeColors[tipo2Raw.toLowerCase()] || "#cef5ff") : "#cef5ff";
 
-    // Modificado para usar las clases limpias que enganchan con tu CSS
     let htmlBloqueTipos = `
         <div class="tipos-container-grid">
             <div class="stat-item-tipo">
@@ -332,6 +598,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
 
     let todosLosNodos = [];
     const procesarNodoEvoMúltiple = (nodo) => {
+        if (!nodo || !nodo.species) return;
         let id = parseInt(nodo.species.url.split("/").slice(-2, -1)[0]);
         
         let rutaImagenEvo = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
@@ -340,9 +607,9 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         }
 
         todosLosNodos.push({
-            id: id,
+            id: isNaN(id) ? currentPokemonId : id,
             name: nodo.species.name.toUpperCase(),
-            img: rutaImagenEvo
+            img: isNaN(id) ? "" : rutaImagenEvo
         });
         if (nodo.evolves_to && nodo.evolves_to.length > 0) {
             nodo.evolves_to.forEach(subNodo => procesarNodoEvoMúltiple(subNodo));
@@ -394,7 +661,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
             let bordeEspecial = (nodo.id === currentPokemonId) ? "border: 2px solid #ffcc00 !important;" : "border: 2px solid #000 !important;";
             evoHtml += `
                 <div class="evo-poke-node" onclick="window.cargarPokemonData(${nodo.id})" style="cursor:pointer; ${bordeEspecial}">
-                    <img src="${nodo.img}" style="width: 44px; height: 44px; object-fit: contain;">
+                    ${nodo.img ? `<img src="${nodo.img}" style="width: 44px; height: 44px; object-fit: contain;">` : `<div style="width:44px; height:44px; background:#e0f7fa; border:1px dashed #000;"></div>`}
                     <span>${nodo.name}</span>
                 </div>
             `;
@@ -405,7 +672,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         evoHtml += `</div>`;
     }
 
-    let movesToFetch = data.moves.slice(0, 22);
+    let movesToFetch = data.moves ? data.moves.slice(0, 22) : [];
     let movesRowsHtml = "";
 
     for (let m of movesToFetch) {
@@ -439,7 +706,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         <div class="details-layout">
             <div class="view-center">
                 <div class="header-line">
-                    <h2 class="poke-name">${data.name.toUpperCase()}</h2>
+                    <h2 class="poke-name">${nombreCastellano}</h2>
                     <div class="poke-header-meta">
                         ${juegosHtml}
                     </div>
@@ -458,7 +725,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
                 ${htmlBloqueTipos}
                 
                 <div class="desc-box">
-                    DESC: ${descEntry.flavor_text.replace(/\n|\f/g, ' ')}
+                    DESC: ${textoDescripcion.replace(/\n|\f/g, ' ')}
                 </div>
             </div>
 
@@ -483,7 +750,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${movesRowsHtml}
+                                ${movesRowsHtml ? movesRowsHtml : '<tr><td colspan="4" style="padding:15px; font-size:7px; color:#555; text-align:center;">SIN REGISTROS OFICIALES</td></tr>'}
                             </tbody>
                         </table>
                     </div>
@@ -492,6 +759,7 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
         </div>
     `;
 };
+
 window.manejarVisualizacionMedia = function(data) {
     let box = document.getElementById("caja-render-imagen");
     if(!box) return;
@@ -507,12 +775,15 @@ window.manejarVisualizacionMedia = function(data) {
         box.appendChild(cargandoTxt);
         setTimeout(() => { window.inicializarVisorBlender3D(box, data.id); }, 50);
     } else {
-        let url = data.sprites.other["official-artwork"].front_default;
-        if (currentVariante === "shiny") url = data.sprites.other["official-artwork"].front_shiny;
+        let url = data.sprites?.other?.["official-artwork"]?.front_default;
+        if (currentVariante === "shiny") url = data.sprites?.other?.["official-artwork"]?.front_shiny;
         
         let img2D = document.createElement("img");
         img2D.id = "poke-img";
-        img2D.src = url || data.sprites.front_default;
+        img2D.src = url || `/assets-main/sprites/${data.id}.png`;
+        img2D.onerror = function() {
+            this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z'/><path d='M2 12h20'/></svg>";
+        };
         img2D.style = "max-height:85%; max-width:85%; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);";
         box.appendChild(img2D);
     }
@@ -552,7 +823,7 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
     });
 
     function animate() {
-        if (!modo3DActivo) return;
+        if (typeof modo3DActivo !== 'undefined' && !modo3DActivo) return;
         mainAnimationId = requestAnimationFrame(animate);
         if (currentModel && !isDragging) currentModel.rotation.y += 0.01;
         if (renderer && scene && camera) renderer.render(scene, camera);
@@ -567,21 +838,19 @@ window.toggleModo3D = function() {
     if(currentPokemonId) window.cargarPokemonData(currentPokemonId);
 };
 
-// Vinculamos ambos nombres posibles para evitar que falle el HTML
 window.cambiarVarianteVisual = window.cambiarVariante = function(tipo) {
     currentVariante = tipo;
     
-    // Soporte para IDs antiguos y nuevos de botones
     (document.getElementById("btn-var-regular") || document.getElementById("btn-var-reg"))?.classList.toggle("active", tipo === 'regular');
     document.getElementById("btn-var-shiny")?.classList.toggle("active", tipo === 'shiny');
     
     let imgElement = document.getElementById("poke-img");
     if (imgElement && window.currentPokemonDataStorage) {
-        let url = window.currentPokemonDataStorage.sprites.other["official-artwork"].front_default;
+        let url = window.currentPokemonDataStorage.sprites?.other?.["official-artwork"]?.front_default;
         if (tipo === "shiny") {
-            url = window.currentPokemonDataStorage.sprites.other["official-artwork"].front_shiny;
+            url = window.currentPokemonDataStorage.sprites?.other?.["official-artwork"]?.front_shiny;
         }
-        imgElement.src = url || window.currentPokemonDataStorage.sprites.front_default;
+        imgElement.src = url || `/assets-main/sprites/${window.currentPokemonDataStorage.id}.png`;
     }
 
     if (vistaActual === "detalle" && currentPokemonId) {
