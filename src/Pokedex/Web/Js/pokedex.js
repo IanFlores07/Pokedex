@@ -802,30 +802,139 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
     if (!scene) scene = new THREE.Scene();
     else { while(scene.children.length > 0){ scene.remove(scene.children[0]); } }
 
-    camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 4.5);
-    scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+    // Rango de cámara ultra amplio para evitar que se recorte el modelo
+    camera = new THREE.PerspectiveCamera(40, width / height, 0.01, 5000);
 
-    const loader = new THREE.GLTFLoader();
-    let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
-    loader.load(`/assets-main/models/opt/${carpeta}/${pokemonId}.glb`, (gltf) => {
-        if(cargando) cargando.remove();
-        if (currentPokemonId !== pokemonId || !modo3DActivo) return;
-        currentModel = gltf.scene;
-        scene.add(currentModel);
-    }, undefined, () => {
-        if(cargando) cargando.remove();
-        let msgErr = document.createElement("div");
-        msgErr.className = "error-3d-msg";
-        msgErr.style = "position:absolute;top:45px;width:100%;text-align:center;font-size:7px;color:black;font-family:'Press Start 2P';";
-        msgErr.innerHTML = `NO 3D`;
-        container.appendChild(msgErr);
-    });
+    // --- ILUMINACIÓN RETRO ---
+    scene.add(new THREE.AmbientLight(0xffffff, 1.4));
+    let dirLight1 = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight1.position.set(5, 8, 5);
+    scene.add(dirLight1);
+    let dirLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight2.position.set(-5, 4, 5);
+    scene.add(dirLight2);
+
+    const ejecutarCargaGLTF = () => {
+        const loader = new THREE.GLTFLoader();
+        
+        const dracoLoader = new THREE.DRACOLoader();
+        dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+        loader.setDRACOLoader(dracoLoader);
+
+        if (window.MeshoptDecoder) {
+            loader.setMeshoptDecoder(window.MeshoptDecoder);
+        }
+
+        let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
+        
+        loader.load(`/assets-main/models/opt/${carpeta}/${pokemonId}.glb`, (gltf) => {
+            if(cargando) cargando.remove();
+            if (currentPokemonId !== pokemonId || !modo3DActivo) return;
+            
+            currentModel = gltf.scene;
+
+            // Reparación en caliente de materiales por doble cara (evita polígonos invisibles)
+            currentModel.traverse((child) => {
+                if (child.isSkinnedMesh) {
+                    try { child.pose(); } catch(e) { console.warn("Hueso corrupto ignorado"); }
+                }
+                if (child.isMesh && child.material) {
+                    if (child.material.opacity === 0) child.material.opacity = 1;
+                    child.material.transparent = child.material.opacity < 1;
+                    child.material.depthWrite = true;
+                    child.material.side = THREE.DoubleSide; 
+                }
+            });
+
+            scene.add(currentModel);
+
+            // ==========================================================
+            // ESCUDO PROTECTOR CONTRA DATOS CORRUPTOS DE BLENDER (CATCH)
+            // ==========================================================
+            let box = new THREE.Box3();
+            let tieneGeometriaReal = false;
+
+            try {
+                currentModel.updateMatrixWorld(true);
+                
+                currentModel.traverse((child) => {
+                    if (child.isMesh && child.geometry) {
+                        // Si Three.js se rompe calculando los límites debido a los accessors rotos...
+                        try {
+                            if (!child.geometry.boundingBox) {
+                                child.geometry.computeBoundingBox();
+                            }
+                            let mBox = child.geometry.boundingBox.clone();
+                            mBox.applyMatrix4(child.matrixWorld);
+                            
+                            if (!isNaN(mBox.min.x) && isFinite(mBox.min.x) && (mBox.max.x - mBox.min.x > 0.0001)) {
+                                box.union(mBox);
+                                tieneGeometriaReal = true;
+                            }
+                        } catch(errGeom) {
+                            // Captura el fallo por cada sub-malla rota y continúa con la siguiente sin colapsar el visor
+                            console.warn("Sub-malla omitida por datos corruptos:", errGeom);
+                        }
+                    }
+                });
+            } catch(e) {
+                console.error("Error general midiendo el modelo completo, aplicando respaldo automático:", e);
+                tieneGeometriaReal = false;
+            }
+
+            // SISTEMA DE SEGURIDAD ABSOLUTO:
+            // Si el medidor matemático falló o el archivo está roto, forzamos un tamaño estándar (1.2 unidades).
+            // Esto garantiza que Pikachu APAREZCA en pantalla aunque sus índices binarios estén mal.
+            if (!tieneGeometriaReal || box.isEmpty() || isNaN(box.min.x) || !isFinite(box.min.x)) {
+                box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.2, 1.2, 1.2));
+            }
+
+            let size = box.getSize(new THREE.Vector3());
+            let center = box.getCenter(new THREE.Vector3());
+
+            // Centramos la vista
+            camera.lookAt(center);
+
+            let ladoMaximo = Math.max(size.x, size.y, size.z);
+            let fovEnRadianes = camera.fov * (Math.PI / 180);
+            let factorZoomBordes = 0.85; 
+            let distanciaCamara = (ladoMaximo / (2 * Math.tan(fovEnRadianes / 2))) * (1 / factorZoomBordes);
+
+            // Ajuste por seguridad de la distancia
+            if (distanciaCamara < 0.1 || isNaN(distanciaCamara) || !isFinite(distanciaCamara)) {
+                distanciaCamara = 2.5;
+            }
+
+            camera.position.set(center.x, center.y, center.z + distanciaCamara);
+            camera.lookAt(center);
+
+        }, undefined, (error) => {
+            console.error("Error crítico de archivo ausente (404) " + pokemonId + ":", error);
+            if(cargando) cargando.remove();
+            let msgErr = document.createElement("div");
+            msgErr.className = "error-3d-msg";
+            msgErr.style = "position:absolute;top:45px;width:100%;text-align:center;font-size:7px;color:black;font-family:'Press Start 2P';";
+            msgErr.innerHTML = `NO 3D`;
+            container.appendChild(msgErr);
+        });
+    };
+
+    if (!window.MeshoptDecoder) {
+        const scriptMeshopt = document.createElement('script');
+        scriptMeshopt.src = 'https://cdn.jsdelivr.net/npm/meshoptimizer@0.18.1/meshopt_decoder.js';
+        scriptMeshopt.onload = () => { ejecutarCargaGLTF(); };
+        scriptMeshopt.onerror = () => { ejecutarCargaGLTF(); };
+        document.head.appendChild(scriptMeshopt);
+    } else {
+        ejecutarCargaGLTF();
+    }
 
     function animate() {
         if (typeof modo3DActivo !== 'undefined' && !modo3DActivo) return;
         mainAnimationId = requestAnimationFrame(animate);
-        if (currentModel && !isDragging) currentModel.rotation.y += 0.01;
+        if (currentModel && !isDragging) {
+            currentModel.rotation.y += 0.01;
+        }
         if (renderer && scene && camera) renderer.render(scene, camera);
     }
     animate();

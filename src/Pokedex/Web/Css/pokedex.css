@@ -678,3 +678,192 @@ button[onclick*="cambiarPokemon"]:active {
 .retro-gen-layout-scroll-box .moves-table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
     background-color: #333333 !important;
 }
+
+/* =========================================================================
+   ADAPTACIÓN RESPONSIVE TOTAL PARA MÓVILES (CÓDIGO OFICIAL COMPLETO)
+   ========================================================================= */
+@media (max-width: 768px) {
+    /* 1. Liberamos el centrado estricto del body para scroll táctil */
+    html, body {
+        height: auto !important;
+        overflow-y: auto !important;
+        display: block !important;
+    }
+
+    /* 2. El marco rojo se estira hacia abajo de forma limpia */
+    .pokedex-frame {
+        width: 100vw !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        padding: 10px 10px 30px 10px !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    /* 3. ¡EL ENCABEZADO Y LUCES COMPLETAMENTE A LA DERECHA! */
+    .pokedex-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin-bottom: 15px !important;
+        padding: 0 4px !important;
+    }
+
+    /* El buscador y los botones de las generaciones se alinean a la extrema derecha */
+    .pokedex-header > :not(.header-left-side) {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-end !important;
+        gap: 6px !important;
+        margin-left: auto !important;
+        margin-right: 0 !important;
+    }
+
+    /* Reducción de tamaños en el encabezado para pantallas estrechas */
+    #poke-search {
+        width: 110px !important;
+        font-size: 0.55rem !important;
+        padding: 4px !important;
+    }
+
+    .btn-toggle-gens, .btn-all {
+        padding: 6px 8px !important;
+        font-size: 0.55rem !important;
+    }
+
+    .pokedex-title {
+        font-size: 0.8rem !important;
+    }
+
+    .blue-sensor {
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    /* Caja flotante de generaciones reubicada para móvil */
+    #gens-box {
+        top: 50px !important;
+        right: 10px !important;
+        grid-template-columns: repeat(2, 85px) !important;
+    }
+
+    /* 4. LA PANTALLA AZUL: Pasa a formato columna vertical nativa */
+    .pokedex-screen {
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: calc(100vh - 140px) !important;
+        overflow-y: auto !important;
+        gap: 15px !important;
+        padding: 10px !important;
+    }
+
+    /* 5. LISTA DE POKÉMON CON TU SCROLLBAR PIXELADO ACTIVO */
+    .retro-gen-layout {
+        height: calc(100vh - 180px) !important; 
+        min-height: 420px !important;
+        overflow-y: auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .grid-gens-3x3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        max-height: 100% !important;
+        overflow-y: auto !important; /* Mantiene activa tu barra amarilla/negra */
+        padding-right: 4px !important;
+    }
+
+    .item-poke-minimal {
+        padding: 12px 4px !important;
+        min-height: 80px !important;
+    }
+    
+    .item-poke-minimal .poke-num { font-size: 0.75rem !important; }
+    .item-poke-minimal .poke-name { font-size: 0.7rem !important; }
+
+    /* 6. DETALLES DEL POKÉMON (VISTA INDIVIDUAL) */
+    .dynamic-zone-wrapper {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    .details-layout {
+        flex-direction: column !important;
+        height: auto !important;
+        gap: 15px !important;
+    }
+
+    /* Las 3 columnas pasan a ser filas apiladas al 100% de ancho */
+    .view-left, .view-center, .view-right-panel {
+        width: 100% !important;
+        height: auto !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* Caja del Render / Sprite */
+    .img-box {
+        height: 210px !important;
+    }
+
+    /* Descripción */
+    .desc-box {
+        max-height: 120px !important;
+        overflow-y: auto !important;
+    }
+
+    /* Evoluciones */
+    .evo-section-box {
+        min-height: 160px !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .evo-flex-linear .evo-poke-node {
+        width: 75px !important;
+        height: 80px !important;
+    }
+
+    /* Ataques */
+    .moves-section-box {
+        min-height: 220px !important;
+        height: auto !important;
+    }
+
+    .moves-table-scroll-wrapper {
+        max-height: 150px !important;
+        overflow-y: auto !important;
+    }
+
+    /* Ajuste de fuentes para evitar solapamientos en fichas técnicas */
+    .poke-name { font-size: 0.95rem !important; }
+    .stat-item .stat-label { width: 55px !important; font-size: 0.5rem !important; }
+    .stat-item .stat-value { font-size: 0.55rem !important; }
+
+    /* 7. REUBICACIÓN DEL BOTÓN DE VOLVER AL MENÚ */
+    .pokedex-footer {
+        position: relative !important;
+        bottom: auto !important;
+        left: auto !important;
+        margin-top: 15px !important;
+        width: 100% !important;
+        display: flex !important;
+        justify-content: center !important;
+        z-index: 9999 !important;
+    }
+
+    .btn-menu-back {
+        width: 100% !important;
+        text-align: center !important;
+        padding: 12px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Soporte extra para móviles muy pequeños (como iPhone SE antiguo) */
+@media (max-width: 380px) {
+    #poke-search { width: 85px !important; }
+    .grid-gens-3x3 { grid-template-columns: repeat(2, 1fr) !important; } /* Pasa a 2 columnas si es diminuto */
+    .img-box { height: 180px !important; }
+}
