@@ -861,9 +861,145 @@ button[onclick*="cambiarPokemon"]:active {
     }
 }
 
-/* Soporte extra para móviles muy pequeños (como iPhone SE antiguo) */
+/* =========================================================================
+   BLOQUE NUEVO: BOTÓN Y POP-UP MODAL PARA EL MODELO 3D
+   ========================================================================= */
+
+/* Forzamos posición relativa en la caja del render para poder fijar el botón dentro */
+.img-box {
+    position: relative !important;
+}
+
+/* Botón pixelado que se situará en la esquina de la caja 3D */
+.btn-fullscreen-3d {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background-color: #000000;
+    color: #cef5ff;
+    border: 2px solid #cef5ff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 6px 8px;
+    cursor: pointer;
+    z-index: 10;
+    box-shadow: 2px 2px 0px #000;
+    text-transform: uppercase;
+}
+
+.btn-fullscreen-3d:hover {
+    background-color: #cef5ff;
+    color: #000000;
+    border-color: #000000;
+}
+
+/* Telón de fondo oscuro del Pop-up */
+.pokedex-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.85);
+    display: none; /* Se activa cambiando a flex mediante JS */
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    padding: 20px;
+}
+
+/* Clase de activación que usará JavaScript */
+.pokedex-modal-overlay.active {
+    display: flex !important;
+}
+
+/* Caja contenedora del Pop-up estilo Pokédex */
+.pokedex-modal-content {
+    background-color: #e3000f;
+    border: 5px solid #000;
+    box-shadow: inset -6px -6px 0px #8b0000, 10px 10px 0px rgba(0,0,0,0.5);
+    width: 85vw;
+    max-width: 800px;
+    height: 75vh;
+    max-height: 600px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    position: relative;
+}
+
+/* Pantalla azul interna dentro del Pop-up */
+.modal-3d-screen {
+    background-color: #cef5ff;
+    border: 4px solid #000;
+    flex-grow: 1;
+    width: 100%;
+    height: calc(100% - 40px);
+    position: relative;
+    box-shadow: inset 4px 4px 0px rgba(0,0,0,0.15);
+}
+
+/* Botón de cierre superior (X) */
+.btn-close-modal {
+    position: absolute;
+    top: -45px;
+    right: -5px;
+    background-color: #000;
+    color: #fff;
+    border: 3px solid #fff;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    box-shadow: 3px 3px 0px #000;
+}
+
+.btn-close-modal:hover {
+    background-color: #fff;
+    color: #000;
+    border-color: #000;
+}
+
+/* Reducción del tamaño de la ventana emergente en pantallas móviles */
+@media (max-width: 768px) {
+    .pokedex-modal-content {
+        width: 95vw !important;
+        height: 65vh !important;
+        padding: 15px !important;
+    }
+    .btn-close-modal {
+        top: -40px !important;
+        right: 0px !important;
+        font-size: 10px !important;
+        padding: 5px 10px !important;
+    }
+    .btn-fullscreen-3d {
+        font-size: 7px !important;
+        padding: 4px 6px !important;
+        bottom: 5px !important;
+        right: 5px !important;
+    }
+}
+
+/* Soporte extra para móviles muy pequeños */
 @media (max-width: 380px) {
     #poke-search { width: 85px !important; }
     .grid-gens-3x3 { grid-template-columns: repeat(2, 1fr) !important; } /* Pasa a 2 columnas si es diminuto */
     .img-box { height: 180px !important; }
+}
+
+/* ==========================================================================
+   ANIMACIÓN RETRO PARPADEANTE (AÑADIDA AL FINAL)
+   ========================================================================== */
+@keyframes parpadeoRetro {
+    0%, 49% {
+        opacity: 1;
+    }
+    50%, 100% {
+        opacity: 0;
+    }
+}
+
+.texto-parpadeante {
+    animation: parpadeoRetro 1.2s infinite !important;
 }
