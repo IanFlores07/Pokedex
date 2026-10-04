@@ -13,6 +13,35 @@ let scene, camera, renderer = null, currentModel = null;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
 
+// --- Variables del visor 3D del modal (AMPLIAR) ---
+let modalScene, modalCamera, modalRenderer = null, modalModel = null;
+let modalAnimationId = null;
+let modalIsDragging = false;
+let modalPrevMouse = { x: 0, y: 0 };
+let modalDistanciaBase = 2.5;
+let modalCentroModelo = null;
+
+// Devuelve las posibles URLs (en orden de preferencia) donde buscar el modelo .glb.
+// 1º intenta la CDN pública del proyecto Pokémon 3D API, 2º cae a tu carpeta local.
+function obtenerUrlsModelo(pokemonId, carpeta) {
+    return [
+        `https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/${carpeta}/${pokemonId}.glb`,
+        `https://raw.githubusercontent.com/Sudhanshu-Ambastha/Pokemon-3D/main/models/opt/${carpeta}/${pokemonId}.glb`,
+        `/assets-main/models/opt/${carpeta}/${pokemonId}.glb`
+    ];
+}
+
+// Intenta cargar un modelo probando varias URLs en orden hasta que una funcione.
+function cargarModeloConFallback(loader, urls, onSuccess, onFinalError, index = 0) {
+    if (index >= urls.length) { onFinalError(); return; }
+    loader.load(
+        urls[index],
+        onSuccess,
+        undefined,
+        () => cargarModeloConFallback(loader, urls, onSuccess, onFinalError, index + 1)
+    );
+}
+
 let pokedexNombresGlobales = [];
 
 const typeColors = {
@@ -739,7 +768,7 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
 
         let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
         
-        loader.load(`/assets-main/models/opt/${carpeta}/${pokemonId}.glb`, (gltf) => {
+        cargarModeloConFallback(loader, obtenerUrlsModelo(pokemonId, carpeta), (gltf) => {
             if(cargando) cargando.remove();
             if (currentPokemonId !== pokemonId || !modo3DActivo) return;
             
@@ -814,9 +843,13 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
             let center = box.getCenter(new THREE.Vector3());
             camera.lookAt(center);
 
-            let ladoMaximo = Math.max(size.x, size.y, size.z);
-            let fovEnRadianes = camera.fov * (Math.PI / 180);
-            let distanciaCamara = (ladoMaximo / (2 * Math.tan(fovEnRadianes / 2))) * (1 / 0.85);
+            // Usamos una esfera envolvente en vez de solo la altura: así el modelo
+            // no se sale del encuadre en ningún ángulo mientras gira automáticamente.
+            let radio = box.getBoundingSphere(new THREE.Sphere()).radius || 0.8;
+            let fovVerticalRad = camera.fov * (Math.PI / 180);
+            let fovHorizontalRad = 2 * Math.atan(Math.tan(fovVerticalRad / 2) * camera.aspect);
+            let fovMinimo = Math.min(fovVerticalRad, fovHorizontalRad);
+            let distanciaCamara = (radio / Math.sin(fovMinimo / 2)) * 1.15; // 15% de margen extra
 
             if (distanciaCamara < 0.1 || isNaN(distanciaCamara) || !isFinite(distanciaCamara)) {
                 distanciaCamara = 2.5;
@@ -825,7 +858,7 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
             camera.position.set(center.x, center.y, center.z + distanciaCamara);
             camera.lookAt(center);
 
-        }, undefined, (error) => {
+        }, () => {
             if(cargando) cargando.remove();
             let msgErr = document.createElement("div");
             msgErr.style = "position:absolute;top:45px;width:100%;text-align:center;font-size:7px;color:black;font-family:'Press Start 2P';";
@@ -859,7 +892,190 @@ window.toggleModo3D = function() {
     modo3DActivo = !modo3DActivo;
     const btn3D = document.getElementById("btn-toggle-3d");
     if(btn3D) btn3D.innerText = modo3DActivo ? "VER 2D" : "VER 3D";
+    const btnAmpliar = document.getElementById("btn-ampliar-3d");
+    if(btnAmpliar) btnAmpliar.style.display = modo3DActivo ? "inline-block" : "none";
     if(currentPokemonId) window.cargarPokemonData(currentPokemonId);
+};
+
+// =========================================================================
+// MODAL 3D AMPLIADO — girar arrastrando, zoom con rueda/pellizco
+// =========================================================================
+
+window.abrirModal3D = function() {
+    if (!currentPokemonId || !modo3DActivo) return;
+    const overlay = document.getElementById("modal-3d-fullscreen");
+    const container = document.getElementById("modal-canvas-container");
+    if (!overlay || !container) return;
+
+    overlay.classList.add("active");
+    // Pequeño delay para que el contenedor ya tenga su tamaño final (el modal acaba de mostrarse)
+    setTimeout(() => window.inicializarVisorModal3D(container, currentPokemonId), 50);
+};
+
+window.cerrarModal3D = function() {
+    const overlay = document.getElementById("modal-3d-fullscreen");
+    if (overlay) overlay.classList.remove("active");
+
+    if (modalAnimationId) cancelAnimationFrame(modalAnimationId);
+    modalAnimationId = null;
+
+    if (modalRenderer) {
+        modalRenderer.dispose();
+        if (modalRenderer.domElement && modalRenderer.domElement.parentNode) {
+            modalRenderer.domElement.parentNode.removeChild(modalRenderer.domElement);
+        }
+    }
+    modalScene = null;
+    modalCamera = null;
+    modalRenderer = null;
+    modalModel = null;
+};
+
+window.inicializarVisorModal3D = function(container, pokemonId) {
+    container.innerHTML = "";
+
+    let width = container.clientWidth || 500;
+    let height = container.clientHeight || 500;
+
+    modalRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    modalRenderer.setSize(width, height);
+    modalRenderer.domElement.style.cursor = "grab";
+    modalRenderer.domElement.style.touchAction = "none";
+    container.appendChild(modalRenderer.domElement);
+
+    modalScene = new THREE.Scene();
+    modalCamera = new THREE.PerspectiveCamera(40, width / height, 0.01, 5000);
+
+    modalScene.add(new THREE.AmbientLight(0xffffff, 0.9));
+    let dirLight1 = new THREE.DirectionalLight(0xffffff, 0.4);
+    dirLight1.position.set(5, 8, 5);
+    modalScene.add(dirLight1);
+    let dirLight2 = new THREE.DirectionalLight(0xffffff, 0.2);
+    dirLight2.position.set(-5, 4, 5);
+    modalScene.add(dirLight2);
+
+    let cargandoTxt = document.createElement("div");
+    cargandoTxt.style = "position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:9px; color:#000; font-family:'Press Start 2P'; text-align:center;";
+    cargandoTxt.innerText = "CARGANDO 3D...";
+    container.appendChild(cargandoTxt);
+
+    const loader = new THREE.GLTFLoader();
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+    loader.setDRACOLoader(dracoLoader);
+    if (window.MeshoptDecoder) loader.setMeshoptDecoder(window.MeshoptDecoder);
+
+    let carpeta = (currentVariante === "shiny") ? "shiny" : "regular";
+    modalCentroModelo = new THREE.Vector3(0, 0, 0);
+    modalDistanciaBase = 2.5;
+
+    cargarModeloConFallback(loader, obtenerUrlsModelo(pokemonId, carpeta), (gltf) => {
+        if (currentPokemonId !== pokemonId) return; // el usuario ya cambió de pokémon
+        cargandoTxt.remove();
+
+        modalModel = gltf.scene;
+
+        modalModel.traverse((child) => {
+            if (child.isSkinnedMesh) { try { child.pose(); } catch (e) {} }
+            if (child.isMesh && child.material) {
+                if (child.material.opacity === 0) child.material.opacity = 1;
+                child.material.transparent = child.material.opacity < 1;
+                child.material.depthWrite = true;
+                child.material.side = THREE.DoubleSide;
+                child.material.roughness = 1.0;
+                child.material.metalness = 0.0;
+                if (child.material.clearcoat !== undefined) child.material.clearcoat = 0.0;
+                if (child.material.emissive) child.material.emissive.setHex(0x000000);
+                if (child.material.map) child.material.map.anisotropy = 4;
+            }
+        });
+
+        modalScene.add(modalModel);
+
+        let box = new THREE.Box3();
+        let tieneGeometriaReal = false;
+        modalModel.updateMatrixWorld(true);
+        modalModel.traverse((child) => {
+            if (child.isMesh && child.geometry) {
+                try {
+                    if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+                    let mBox = child.geometry.boundingBox.clone();
+                    mBox.applyMatrix4(child.matrixWorld);
+                    if (!isNaN(mBox.min.x) && isFinite(mBox.min.x) && (mBox.max.x - mBox.min.x > 0.0001)) {
+                        box.union(mBox);
+                        tieneGeometriaReal = true;
+                    }
+                } catch (e) {}
+            }
+        });
+        if (!tieneGeometriaReal || box.isEmpty()) {
+            box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.2, 1.2, 1.2));
+        }
+
+        let size = box.getSize(new THREE.Vector3());
+        let center = box.getCenter(new THREE.Vector3());
+        modalCentroModelo = center;
+
+        let radioModal = box.getBoundingSphere(new THREE.Sphere()).radius || 0.8;
+        let fovVerticalModal = modalCamera.fov * (Math.PI / 180);
+        let fovHorizontalModal = 2 * Math.atan(Math.tan(fovVerticalModal / 2) * modalCamera.aspect);
+        let fovMinimoModal = Math.min(fovVerticalModal, fovHorizontalModal);
+        // Un pelín más alejado que en la miniatura para dejar margen al hacer zoom in
+        modalDistanciaBase = (radioModal / Math.sin(fovMinimoModal / 2)) * 1.3;
+        if (!isFinite(modalDistanciaBase) || modalDistanciaBase < 0.1) modalDistanciaBase = 3;
+
+        modalCamera.position.set(center.x, center.y, center.z + modalDistanciaBase);
+        modalCamera.lookAt(center);
+
+    }, () => {
+        cargandoTxt.innerHTML = "NO HAY MODELO 3D<br>DISPONIBLE";
+    });
+
+    // --- Controles: arrastrar (ratón/dedo) para girar, rueda/pellizco para zoom ---
+    const iniciarArrastre = (e) => {
+        modalIsDragging = true;
+        modalRenderer.domElement.style.cursor = "grabbing";
+        let p = e.touches ? e.touches[0] : e;
+        modalPrevMouse = { x: p.clientX, y: p.clientY };
+    };
+    const moverArrastre = (e) => {
+        if (!modalIsDragging || !modalModel) return;
+        let p = e.touches ? e.touches[0] : e;
+        let deltaX = p.clientX - modalPrevMouse.x;
+        let deltaY = p.clientY - modalPrevMouse.y;
+        modalModel.rotation.y += deltaX * 0.01;
+        modalModel.rotation.x += deltaY * 0.01;
+        modalPrevMouse = { x: p.clientX, y: p.clientY };
+    };
+    const terminarArrastre = () => {
+        modalIsDragging = false;
+        if (modalRenderer) modalRenderer.domElement.style.cursor = "grab";
+    };
+    const hacerZoom = (e) => {
+        e.preventDefault();
+        if (!modalCamera || !modalCentroModelo) return;
+        let dir = new THREE.Vector3().subVectors(modalCamera.position, modalCentroModelo);
+        let dist = dir.length();
+        if (dist < 0.0001) return;
+        dir.normalize();
+        let nuevaDist = dist * (1 + e.deltaY * 0.001);
+        nuevaDist = Math.max(modalDistanciaBase * 0.3, Math.min(modalDistanciaBase * 3, nuevaDist));
+        modalCamera.position.copy(modalCentroModelo).addScaledVector(dir, nuevaDist);
+    };
+
+    modalRenderer.domElement.addEventListener("mousedown", iniciarArrastre);
+    window.addEventListener("mousemove", moverArrastre);
+    window.addEventListener("mouseup", terminarArrastre);
+    modalRenderer.domElement.addEventListener("touchstart", iniciarArrastre, { passive: true });
+    modalRenderer.domElement.addEventListener("touchmove", moverArrastre, { passive: true });
+    modalRenderer.domElement.addEventListener("touchend", terminarArrastre);
+    modalRenderer.domElement.addEventListener("wheel", hacerZoom, { passive: false });
+
+    function animateModal() {
+        modalAnimationId = requestAnimationFrame(animateModal);
+        if (modalRenderer && modalScene && modalCamera) modalRenderer.render(modalScene, modalCamera);
+    }
+    animateModal();
 };
 
 window.cambiarVarianteVisual = window.cambiarVariante = function(tipo) {
