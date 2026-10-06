@@ -4,6 +4,7 @@
 
 let currentPokemonId = null; 
 let currentVariante = "regular"; 
+let modoImagen = "poster"; // "poster" = artwork oficial | "sprite" = pixel art estático | "animado" = pixel art animado
 let vistaActual = "lista"; 
 let idGenActiva = 1; 
 let modo3DActivo = false;
@@ -12,6 +13,27 @@ let mainAnimationId = null;
 let scene, camera, renderer = null, currentModel = null;
 let isDragging = false;
 let previousMousePosition = { x: 0, y: 0 };
+let mainMixer = null;
+let mainClock = null;
+
+// Elige qué animación reproducir: prioriza "idle"/"pose"/"stand", si no hay, usa la primera.
+function elegirClipAnimacion(animaciones) {
+    if (!animaciones || animaciones.length === 0) return null;
+    const preferida = animaciones.find(c => /idle|pose|stand|rest|wait/i.test(c.name));
+    return preferida || animaciones[0];
+}
+
+// Intento de detectar y ocultar piezas de "cuerda/colgante/llavero" que traen
+// algunos modelos de este pack comunitario (no podemos ver el .glb por dentro,
+// así que vamos por nombre de la pieza).
+function ocultarPiezasColgante(modelo) {
+    const patron = /string|rope|cord|cordon|hang|loop|handle|keychain|strap|hilo|cuerda/i;
+    modelo.traverse((child) => {
+        if (child.name && patron.test(child.name)) {
+            child.visible = false;
+        }
+    });
+}
 
 // --- Variables del visor 3D del modal (AMPLIAR) ---
 let modalScene, modalCamera, modalRenderer = null, modalModel = null;
@@ -20,13 +42,18 @@ let modalIsDragging = false;
 let modalPrevMouse = { x: 0, y: 0 };
 let modalDistanciaBase = 2.5;
 let modalCentroModelo = null;
+let modalMixer = null;
+let modalClock = null;
 
 // Devuelve las posibles URLs (en orden de preferencia) donde buscar el modelo .glb.
 // 1º intenta la CDN pública del proyecto Pokémon 3D API, 2º cae a tu carpeta local.
 function obtenerUrlsModelo(pokemonId, carpeta) {
     return [
-        `https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/${carpeta}/${pokemonId}.glb`,
+        // Ruta real y activa del repo (confirmada): models/glb, no models/opt
+        `https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/glb/${carpeta}/${pokemonId}.glb`,
+        // Respaldo: repo antiguo archivado (estructura vieja, por si algún modelo solo sigue ahí)
         `https://raw.githubusercontent.com/Sudhanshu-Ambastha/Pokemon-3D/main/models/opt/${carpeta}/${pokemonId}.glb`,
+        // Último respaldo: tu propia carpeta local, si algún día subes tus modelos ahí
         `/assets-main/models/opt/${carpeta}/${pokemonId}.glb`
     ];
 }
@@ -201,22 +228,255 @@ window.seleccionarGenFiltro = function(numGen) {
     window.mostrarCajaGeneracionDetalle(numGen);
 };
 
+// =========================================================================
+// BUSCADOR POR TIPO
+// =========================================================================
+
+window.filtrarPorTipo = async function(tipoIngles) {
+    const tiposBox = document.getElementById("tipos-box");
+    if (tiposBox) tiposBox.classList.add("collapsed");
+    const searchInput = document.getElementById("poke-search");
+    if (searchInput) searchInput.value = "";
+    bloqueadoPorBuscador = true;
+    vistaActual = "lista";
+    conmutarLayoutEntorno("lista");
+
+    const dynamicZone = document.getElementById("dynamic-zone");
+    const nombreTipoEs = traduccionTipos[tipoIngles] || tipoIngles.toUpperCase();
+    if (dynamicZone) {
+        dynamicZone.innerHTML = `
+            <div class="retro-gen-layout">
+                <div class="black-info-box"><h2>TIPO: ${nombreTipoEs}</h2></div>
+                <div id="grid-pokes-3x3" class="grid-gens-3x3"><p style="font-size:8px;padding:10px;grid-column:1/-1;">CARGANDO...</p></div>
+            </div>
+        `;
+    }
+
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/type/${tipoIngles}`);
+        const data = await res.json();
+        const contenedorDestino = document.getElementById("grid-pokes-3x3");
+        if (!contenedorDestino) return;
+        contenedorDestino.innerHTML = "";
+
+        const lista = data.pokemon
+            .map(p => {
+                const partes = p.pokemon.url.split("/").filter(Boolean);
+                const id = parseInt(partes[partes.length - 1]);
+                return { id, urlName: p.pokemon.name };
+            })
+            .filter(p => !isNaN(p.id) && p.id <= 1025) // fuera formas especiales con ids altísimos
+            .sort((a, b) => a.id - b.id);
+
+        if (lista.length === 0) {
+            contenedorDestino.innerHTML = `<p style="font-size: 8px; color: #000; padding: 10px; grid-column: 1/-1;">SIN RESULTADOS.</p>`;
+            return;
+        }
+
+        lista.forEach(p => {
+            const entradaGlobal = pokedexNombresGlobales.find(g => g.id === p.id);
+            const nombreMostrado = entradaGlobal ? entradaGlobal.name : p.urlName.toUpperCase();
+            let tarjetaPoke = document.createElement("div");
+            tarjetaPoke.className = "item-poke-minimal";
+            tarjetaPoke.onclick = () => { bloqueadoPorBuscador = false; window.cargarPokemonData(p.id); };
+            tarjetaPoke.innerHTML = `<span class="poke-num">#${formatPaddedId(p.id)}</span><span class="poke-name">${nombreMostrado}</span>`;
+            contenedorDestino.appendChild(tarjetaPoke);
+        });
+    } catch (e) {
+        const contenedorDestino = document.getElementById("grid-pokes-3x3");
+        if (contenedorDestino) contenedorDestino.innerHTML = `<p style="font-size:8px;color:red;padding:10px;grid-column:1/-1;">ERROR CARGANDO EL TIPO.</p>`;
+    }
+};
+
+function construirCajaTipos() {
+    const tiposBox = document.getElementById("tipos-box");
+    if (!tiposBox) return;
+    tiposBox.innerHTML = "";
+    Object.keys(traduccionTipos).forEach(tipoIngles => {
+        const btn = document.createElement("button");
+        btn.textContent = traduccionTipos[tipoIngles];
+        btn.style.borderLeft = `4px solid ${typeColors[tipoIngles]}`;
+        btn.onclick = () => window.filtrarPorTipo(tipoIngles);
+        tiposBox.appendChild(btn);
+    });
+}
+
+// =========================================================================
+// LISTA DE ATAQUES — clic en uno muestra qué Pokémon lo pueden aprender
+// =========================================================================
+
+let listaAtaquesGlobal = [];
+let ataquesCargados = false;
+
+window.abrirModalAtaques = async function() {
+    const overlay = document.getElementById("modal-ataques");
+    if (overlay) overlay.classList.add("active");
+    document.getElementById("detalle-ataque")?.classList.add("hidden");
+    document.getElementById("lista-ataques")?.classList.remove("hidden");
+
+    if (!ataquesCargados) {
+        const cont = document.getElementById("lista-ataques");
+        if (cont) cont.innerHTML = `<p style="font-size:8px;padding:10px;grid-column:1/-1;">CARGANDO LISTA DE ATAQUES...</p>`;
+        try {
+            // Pedimos la lista de ataques y el CSV con TODOS los nombres en español
+            // a la vez, en vez de traducir ataque por ataque (sería lentísimo).
+            const [resLista, resCsv] = await Promise.all([
+                fetch('https://pokeapi.co/api/v2/move?limit=1000'),
+                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/move_names.csv')
+            ]);
+            const data = await resLista.json();
+            const textoCsv = await resCsv.text();
+
+            // Parseamos el CSV: move_id,local_language_id,name — solo nos quedamos con el idioma 7 (español)
+            const traduccionesPorId = {};
+            textoCsv.split("\n").forEach(linea => {
+                const partes = linea.split(",");
+                if (partes.length < 3) return;
+                if (partes[1].trim() === "7") {
+                    traduccionesPorId[partes[0].trim()] = partes.slice(2).join(",").trim();
+                }
+            });
+
+            listaAtaquesGlobal = data.results.map(m => {
+                const partesUrl = m.url.split("/").filter(Boolean);
+                const idAtaque = partesUrl[partesUrl.length - 1];
+                const nombreEs = traduccionesPorId[idAtaque];
+                return {
+                    slug: m.name,
+                    nombreMostrado: nombreEs || m.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                };
+            }).sort((a, b) => a.nombreMostrado.localeCompare(b.nombreMostrado, "es"));
+            ataquesCargados = true;
+        } catch (e) {
+            if (cont) cont.innerHTML = `<p style="font-size:8px;color:red;padding:10px;grid-column:1/-1;">ERROR CARGANDO LOS ATAQUES.</p>`;
+            return;
+        }
+    }
+    renderizarListaAtaques(listaAtaquesGlobal);
+};
+
+function renderizarListaAtaques(lista) {
+    const cont = document.getElementById("lista-ataques");
+    if (!cont) return;
+    cont.innerHTML = "";
+    if (lista.length === 0) {
+        cont.innerHTML = `<p style="font-size:8px;padding:10px;grid-column:1/-1;">SIN RESULTADOS.</p>`;
+        return;
+    }
+    // Limitamos el renderizado a 200 a la vez (son ~900 ataques) para no reventar el DOM;
+    // el buscador de arriba sirve para encontrar cualquiera al instante.
+    lista.slice(0, 200).forEach(m => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "item-ataque";
+        item.textContent = m.nombreMostrado;
+        item.onclick = () => window.mostrarDetalleAtaque(m.slug, m.nombreMostrado);
+        cont.appendChild(item);
+    });
+    if (lista.length > 200) {
+        const aviso = document.createElement("p");
+        aviso.style = "font-size:7px;color:#666;padding:6px;grid-column:1/-1;";
+        aviso.textContent = `Mostrando 200 de ${lista.length} — usa el buscador para encontrar el tuyo.`;
+        cont.appendChild(aviso);
+    }
+}
+
+window.mostrarDetalleAtaque = async function(slug, nombreMostrado) {
+    document.getElementById("lista-ataques")?.classList.add("hidden");
+    const detalle = document.getElementById("detalle-ataque");
+    if (!detalle) return;
+    detalle.classList.remove("hidden");
+    detalle.innerHTML = `<button class="btn-volver-ataques" onclick="window.volverListaAtaques()">◄ VOLVER</button><p style="font-size:8px;padding:10px;">Cargando "${nombreMostrado}"...</p>`;
+
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/move/${slug}`);
+        const data = await res.json();
+        const nombreEs = data.names?.find(n => n.language.name === "es")?.name || nombreMostrado;
+        const tipoEs = traduccionTipos[data.type?.name] || (data.type?.name || "?").toUpperCase();
+        const colorTipo = typeColors[data.type?.name] || "#888";
+        const poder = data.power !== null && data.power !== undefined ? data.power : "—";
+        const precision = data.accuracy !== null && data.accuracy !== undefined ? data.accuracy : "—";
+        const pp = data.pp !== null && data.pp !== undefined ? data.pp : "—";
+
+        detalle.innerHTML = `
+            <button class="btn-volver-ataques" onclick="window.volverListaAtaques()">◄ VOLVER</button>
+            <h3 class="ataque-nombre-detalle">${nombreEs}</h3>
+            <div class="ataque-chips-row">
+                <span class="chip-tipo-ataque" style="background:${colorTipo}">${tipoEs}</span>
+                <span class="chip-stat-ataque">PODER: ${poder}</span>
+                <span class="chip-stat-ataque">PRECISIÓN: ${precision}</span>
+                <span class="chip-stat-ataque">PP: ${pp}</span>
+            </div>
+            <p class="ataque-aprendices-titulo">POKÉMON QUE LO PUEDEN APRENDER (${data.learned_by_pokemon.length}):</p>
+            <div id="grid-aprendices" class="lista-ataques-grid grid-gens-3x3"></div>
+        `;
+
+        const gridAprendices = document.getElementById("grid-aprendices");
+        if (data.learned_by_pokemon.length === 0) {
+            gridAprendices.innerHTML = `<p style="font-size:8px;padding:6px;grid-column:1/-1;">Ningún Pokémon lo aprende actualmente.</p>`;
+        } else {
+            data.learned_by_pokemon.forEach(p => {
+                const partes = p.url.split("/").filter(Boolean);
+                const id = parseInt(partes[partes.length - 1]);
+                if (isNaN(id) || id > 1025) return;
+                const entradaGlobal = pokedexNombresGlobales.find(g => g.id === id);
+                const nombreMostradoPoke = entradaGlobal ? entradaGlobal.name : p.name.toUpperCase();
+                const tarjeta = document.createElement("div");
+                tarjeta.className = "item-poke-minimal";
+                tarjeta.onclick = () => { window.cerrarModalAtaques(); window.cargarPokemonData(id); };
+                tarjeta.innerHTML = `<span class="poke-num">#${formatPaddedId(id)}</span><span class="poke-name">${nombreMostradoPoke}</span>`;
+                gridAprendices.appendChild(tarjeta);
+            });
+        }
+    } catch (e) {
+        detalle.innerHTML = `<button class="btn-volver-ataques" onclick="window.volverListaAtaques()">◄ VOLVER</button><p style="font-size:8px;color:red;padding:10px;">ERROR CARGANDO EL ATAQUE.</p>`;
+    }
+};
+
+window.volverListaAtaques = function() {
+    document.getElementById("detalle-ataque")?.classList.add("hidden");
+    document.getElementById("lista-ataques")?.classList.remove("hidden");
+};
+
+window.cerrarModalAtaques = function() {
+    document.getElementById("modal-ataques")?.classList.remove("active");
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     window.mostrarPantallaInicialOcupandoTodo();
     precargarCatalogoBuscar();
-    
+    construirCajaTipos();
+
     const btnGenToggle = document.getElementById("btn-toggle-gens");
     const gensBox = document.getElementById("gens-box");
+    const btnTiposToggle = document.getElementById("btn-toggle-tipos");
+    const tiposBox = document.getElementById("tipos-box");
     const searchInput = document.getElementById("poke-search");
+    const buscarAtaqueInput = document.getElementById("buscar-ataque");
 
     if (btnGenToggle && gensBox) {
         btnGenToggle.addEventListener("click", (e) => {
             e.preventDefault(); 
+            if (tiposBox) tiposBox.classList.add("collapsed");
             gensBox.classList.toggle("collapsed");
+        });
+    }
+    if (btnTiposToggle && tiposBox) {
+        btnTiposToggle.addEventListener("click", (e) => {
+            e.preventDefault();
+            if (gensBox) gensBox.classList.add("collapsed");
+            tiposBox.classList.toggle("collapsed");
         });
     }
     if (searchInput) {
         searchInput.addEventListener("input", window.aplicarFiltroBuscador);
+    }
+    if (buscarAtaqueInput) {
+        buscarAtaqueInput.addEventListener("input", () => {
+            const q = buscarAtaqueInput.value.toLowerCase().trim();
+            const filtrados = q === "" ? listaAtaquesGlobal : listaAtaquesGlobal.filter(m => m.nombreMostrado.toLowerCase().includes(q) || m.slug.includes(q));
+            renderizarListaAtaques(filtrados);
+        });
     }
 });
 
@@ -661,7 +921,10 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
             <div class="view-center">
                 <div class="header-line">
                     <h2 class="poke-name">${nombreCastellano}</h2>
-                    <div class="poke-header-meta">${juegosHtml}</div>
+                    <div class="poke-header-meta">
+                        <span class="poke-gen-region">GEN ${activeGenIndex} · ${rango ? rango.region.toUpperCase() : "DESCONOCIDA"}</span>
+                        ${juegosHtml}
+                    </div>
                 </div>
                 <div class="stats-grid">
                     <div class="stat-item"><span class="stat-label">PS</span><span class="stat-value">${statPS}</span></div>
@@ -711,16 +974,45 @@ window.manejarVisualizacionMedia = function(data) {
         box.appendChild(cargandoTxt);
         setTimeout(() => { window.inicializarVisorBlender3D(box, data.id); }, 50);
     } else {
-        let url = data.sprites?.other?.["official-artwork"]?.front_default;
-        if (currentVariante === "shiny") url = data.sprites?.other?.["official-artwork"]?.front_shiny;
-        
+        let urlPoster = data.sprites?.other?.["official-artwork"]?.front_default;
+        let urlPosterShiny = data.sprites?.other?.["official-artwork"]?.front_shiny;
+        let urlSpritePx = data.sprites?.front_default;
+        let urlSpritePxShiny = data.sprites?.front_shiny;
+        // Sprites animados (GIF) de Pokémon Showdown — solo cubren hasta ~Gen 8
+        let urlAnimado = `https://play.pokemonshowdown.com/sprites/ani/${data.name}.gif`;
+        let urlAnimadoShiny = `https://play.pokemonshowdown.com/sprites/ani-shiny/${data.name}.gif`;
+
+        let url;
+        let esPixelado = (modoImagen === "sprite" || modoImagen === "animado");
+        let esMuyGrande = esPixelado; // el pixel art se puede agrandar más sin verse mal
+
+        if (modoImagen === "animado") {
+            url = (currentVariante === "shiny") ? urlAnimadoShiny : urlAnimado;
+        } else if (modoImagen === "sprite") {
+            url = (currentVariante === "shiny") ? (urlSpritePxShiny || urlSpritePx) : urlSpritePx;
+        } else {
+            url = (currentVariante === "shiny") ? (urlPosterShiny || urlPoster) : urlPoster;
+        }
+
         let img2D = document.createElement("img");
         img2D.id = "poke-img";
-        img2D.src = url || `/assets-main/sprites/${data.id}.png`;
+        img2D.src = url || urlPoster || `/assets-main/sprites/${data.id}.png`;
         img2D.onerror = function() {
-            this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M2 12h20'/></svg>";
+            if (modoImagen === "animado") {
+                // Si no existe versión animada para este Pokémon, caemos al sprite estático
+                this.onerror = () => {
+                    this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M2 12h20'/></svg>";
+                };
+                this.src = (currentVariante === "shiny") ? (urlSpritePxShiny || urlSpritePx) : urlSpritePx;
+            } else {
+                this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M2 12h20'/></svg>";
+            }
         };
-        img2D.style = "max-height:85%; max-width:85%; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);";
+        // OJO: usamos width/height (no solo max-*), porque max-width/max-height
+        // solo ponen un TOPE y no agrandan una imagen pequeña (sprites de 96x96px)
+        // aunque sobre espacio de sobra en el recuadro.
+        let tamano = esMuyGrande ? "92%" : "85%";
+        img2D.style = `width:${tamano}; height:${tamano}; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); ${esPixelado ? 'image-rendering:pixelated;' : ''}`;
         box.appendChild(img2D);
     }
 };
@@ -774,11 +1066,25 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
             
             currentModel = gltf.scene;
 
+            // Si el modelo trae animaciones (idle, etc.) las reproducimos en bucle
+            // en vez de forzar pose() — eso era lo que lo dejaba "colgando" raro.
+            if (mainMixer) { mainMixer.stopAllAction(); mainMixer = null; }
+            const clipElegido = elegirClipAnimacion(gltf.animations);
+            if (clipElegido) {
+                mainMixer = new THREE.AnimationMixer(currentModel);
+                mainMixer.clipAction(clipElegido).play();
+                mainClock = new THREE.Clock();
+            }
+
             // ========================================================
             // TRATAMIENTO DE COLOR OSCURO Y MATE PROFUNDO
             // ========================================================
             currentModel.traverse((child) => {
                 if (child.isSkinnedMesh) {
+                    // SIEMPRE colocamos primero el esqueleto en su pose de reposo completa
+                    // (si no, los huesos que la animación no toca quedan "crudos" y el
+                    // modelo sale estirado/colgando). La animación, si existe, se anima
+                    // encima de esto en cada frame vía el AnimationMixer.
                     try { child.pose(); } catch(e) { console.warn("Hueso corrupto ignorado"); }
                 }
                 if (child.isMesh && child.material) {
@@ -843,13 +1149,20 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
             let center = box.getCenter(new THREE.Vector3());
             camera.lookAt(center);
 
-            // Usamos una esfera envolvente en vez de solo la altura: así el modelo
-            // no se sale del encuadre en ningún ángulo mientras gira automáticamente.
-            let radio = box.getBoundingSphere(new THREE.Sphere()).radius || 0.8;
+            // El modelo solo gira sobre el eje Y (vertical), así que:
+            // - la altura (size.y) NO cambia nunca al girar -> se ajusta directo
+            // - el "ancho" que se ve SÍ cambia entre size.x y size.z según el ángulo,
+            //   así que usamos el caso peor: la diagonal del rectángulo X-Z (radio horizontal)
+            let radioHorizontal = 0.5 * Math.sqrt(size.x * size.x + size.z * size.z) || 0.6;
+            let alturaMedia = (size.y / 2) || 0.6;
+
             let fovVerticalRad = camera.fov * (Math.PI / 180);
             let fovHorizontalRad = 2 * Math.atan(Math.tan(fovVerticalRad / 2) * camera.aspect);
-            let fovMinimo = Math.min(fovVerticalRad, fovHorizontalRad);
-            let distanciaCamara = (radio / Math.sin(fovMinimo / 2)) * 1.15; // 15% de margen extra
+
+            let distV = alturaMedia / Math.tan(fovVerticalRad / 2);
+            let distH = radioHorizontal / Math.tan(fovHorizontalRad / 2);
+
+            let distanciaCamara = Math.max(distV, distH) * 1.2; // 20% de margen
 
             if (distanciaCamara < 0.1 || isNaN(distanciaCamara) || !isFinite(distanciaCamara)) {
                 distanciaCamara = 2.5;
@@ -877,9 +1190,44 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
         ejecutarCargaGLTF();
     }
 
+    // --- Arrastrar con el ratón/dedo para girar el modelo manualmente ---
+    const iniciarArrastreMini = (e) => {
+        isDragging = true;
+        renderer.domElement.style.cursor = "grabbing";
+        let p = e.touches ? e.touches[0] : e;
+        previousMousePosition = { x: p.clientX, y: p.clientY };
+    };
+    const moverArrastreMini = (e) => {
+        if (!isDragging || !currentModel) return;
+        let p = e.touches ? e.touches[0] : e;
+        let deltaX = p.clientX - previousMousePosition.x;
+        let deltaY = p.clientY - previousMousePosition.y;
+        currentModel.rotation.y += deltaX * 0.01;
+        currentModel.rotation.x += deltaY * 0.01;
+        previousMousePosition = { x: p.clientX, y: p.clientY };
+    };
+    const terminarArrastreMini = () => {
+        isDragging = false;
+        if (renderer) renderer.domElement.style.cursor = "grab";
+    };
+
+    renderer.domElement.style.cursor = "grab";
+    renderer.domElement.removeEventListener("mousedown", iniciarArrastreMini);
+    renderer.domElement.addEventListener("mousedown", iniciarArrastreMini);
+    window.removeEventListener("mousemove", moverArrastreMini);
+    window.addEventListener("mousemove", moverArrastreMini);
+    window.removeEventListener("mouseup", terminarArrastreMini);
+    window.addEventListener("mouseup", terminarArrastreMini);
+    renderer.domElement.addEventListener("touchstart", iniciarArrastreMini, { passive: true });
+    renderer.domElement.addEventListener("touchmove", moverArrastreMini, { passive: true });
+    renderer.domElement.addEventListener("touchend", terminarArrastreMini);
+
     function animate() {
         if (typeof modo3DActivo !== 'undefined' && !modo3DActivo) return;
         mainAnimationId = requestAnimationFrame(animate);
+        if (mainMixer && mainClock) {
+            mainMixer.update(mainClock.getDelta());
+        }
         if (currentModel && !isDragging) {
             currentModel.rotation.y += 0.01;
         }
@@ -925,6 +1273,9 @@ window.cerrarModal3D = function() {
             modalRenderer.domElement.parentNode.removeChild(modalRenderer.domElement);
         }
     }
+    if (modalMixer) { modalMixer.stopAllAction(); }
+    modalMixer = null;
+    modalClock = null;
     modalScene = null;
     modalCamera = null;
     modalRenderer = null;
@@ -975,6 +1326,14 @@ window.inicializarVisorModal3D = function(container, pokemonId) {
 
         modalModel = gltf.scene;
 
+        if (modalMixer) { modalMixer.stopAllAction(); modalMixer = null; }
+        const clipElegidoModal = elegirClipAnimacion(gltf.animations);
+        if (clipElegidoModal) {
+            modalMixer = new THREE.AnimationMixer(modalModel);
+            modalMixer.clipAction(clipElegidoModal).play();
+            modalClock = new THREE.Clock();
+        }
+
         modalModel.traverse((child) => {
             if (child.isSkinnedMesh) { try { child.pose(); } catch (e) {} }
             if (child.isMesh && child.material) {
@@ -1016,12 +1375,17 @@ window.inicializarVisorModal3D = function(container, pokemonId) {
         let center = box.getCenter(new THREE.Vector3());
         modalCentroModelo = center;
 
-        let radioModal = box.getBoundingSphere(new THREE.Sphere()).radius || 0.8;
+        let radioHorizontalModal = 0.5 * Math.sqrt(size.x * size.x + size.z * size.z) || 0.6;
+        let alturaMediaModal = (size.y / 2) || 0.6;
+
         let fovVerticalModal = modalCamera.fov * (Math.PI / 180);
         let fovHorizontalModal = 2 * Math.atan(Math.tan(fovVerticalModal / 2) * modalCamera.aspect);
-        let fovMinimoModal = Math.min(fovVerticalModal, fovHorizontalModal);
+
+        let distVModal = alturaMediaModal / Math.tan(fovVerticalModal / 2);
+        let distHModal = radioHorizontalModal / Math.tan(fovHorizontalModal / 2);
+
         // Un pelín más alejado que en la miniatura para dejar margen al hacer zoom in
-        modalDistanciaBase = (radioModal / Math.sin(fovMinimoModal / 2)) * 1.3;
+        modalDistanciaBase = Math.max(distVModal, distHModal) * 1.35;
         if (!isFinite(modalDistanciaBase) || modalDistanciaBase < 0.1) modalDistanciaBase = 3;
 
         modalCamera.position.set(center.x, center.y, center.z + modalDistanciaBase);
@@ -1073,6 +1437,9 @@ window.inicializarVisorModal3D = function(container, pokemonId) {
 
     function animateModal() {
         modalAnimationId = requestAnimationFrame(animateModal);
+        if (modalMixer && modalClock) {
+            modalMixer.update(modalClock.getDelta());
+        }
         if (modalRenderer && modalScene && modalCamera) modalRenderer.render(modalScene, modalCamera);
     }
     animateModal();
@@ -1084,6 +1451,25 @@ window.cambiarVarianteVisual = window.cambiarVariante = function(tipo) {
     document.getElementById("btn-var-shiny")?.classList.toggle("active", tipo === 'shiny');
     
     if (vistaActual === "detalle" && currentPokemonId) {
-        window.cargarPokemonData(currentPokemonId);
+        // Si ya tenemos los datos de este Pokémon en caché, solo redibujamos la imagen/3D
+        // en vez de volver a pedirlo todo a la PokéAPI (mucho más rápido)
+        if (window.currentPokemonDataStorage && window.currentPokemonDataStorage.id === currentPokemonId) {
+            window.manejarVisualizacionMedia(window.currentPokemonDataStorage);
+        } else {
+            window.cargarPokemonData(currentPokemonId);
+        }
+    }
+};
+
+window.cambiarModoImagen = function(modo) {
+    modoImagen = modo;
+    document.getElementById("btn-img-poster")?.classList.toggle("active", modo === "poster");
+    document.getElementById("btn-img-sprite")?.classList.toggle("active", modo === "sprite");
+    document.getElementById("btn-img-animado")?.classList.toggle("active", modo === "animado");
+
+    if (modo3DActivo) return; // el toggle de imagen no afecta a la vista 3D
+
+    if (window.currentPokemonDataStorage && window.currentPokemonDataStorage.id === currentPokemonId) {
+        window.manejarVisualizacionMedia(window.currentPokemonDataStorage);
     }
 };

@@ -17,6 +17,11 @@
             </div>
             <div class="header-right-controls">
                 <div style="position: relative; display: inline-block;">
+                    <button id="btn-toggle-tipos" class="btn-toggle-gens">[+] TIPOS</button>
+                    <div id="tipos-box" class="gens-container-box collapsed"></div>
+                </div>
+                <button id="btn-ataques" class="btn-all" onclick="window.abrirModalAtaques()">⚔️ ATAQUES</button>
+                <div style="position: relative; display: inline-block;">
                     <button id="btn-toggle-gens" class="btn-toggle-gens">[+] GENS</button>
                     <div id="gens-box" class="gens-container-box collapsed">
                         <button onclick="window.seleccionarGenFiltro(1)">GEN 1</button>
@@ -46,6 +51,11 @@
                     <button class="btn-form-variant active" id="btn-var-reg" onclick="window.cambiarVarianteVisual('regular')">NORMAL</button>
                     <button class="btn-form-variant" id="btn-var-shiny" onclick="window.cambiarVarianteVisual('shiny')">SHINY</button>
                 </div>
+                <div class="forms-grid forms-grid-3">
+                    <button class="btn-form-variant active" id="btn-img-poster" onclick="window.cambiarModoImagen('poster')">PÓSTER</button>
+                    <button class="btn-form-variant" id="btn-img-sprite" onclick="window.cambiarModoImagen('sprite')">SPRITE</button>
+                    <button class="btn-form-variant" id="btn-img-animado" onclick="window.cambiarModoImagen('animado')">ANIMADO</button>
+                </div>
                 <div class="media-toggle-buttons">
                     <button class="btn-3d" id="btn-toggle-3d" onclick="window.toggleModo3D()">VISTA 3D</button>
                 </div>
@@ -62,7 +72,20 @@
         </div>
 
     <div class="pokedex-footer">
-            <button class="btn-menu-back">VOLVER AL MENÚ PRINCIPAL</button>
+            <button class="btn-menu-back" onclick="location.href='index.html'">VOLVER AL MENÚ PRINCIPAL</button>
+        </div>
+    </div>
+
+    <div class="pokedex-modal-overlay" id="modal-ataques" onclick="if(event.target===this) window.cerrarModalAtaques()">
+        <div class="pokedex-modal-content ataques-modal-content">
+            <button class="btn-close-modal" onclick="window.cerrarModalAtaques()">X</button>
+            <h2 class="ataques-titulo">LISTA DE ATAQUES</h2>
+            <div class="ataques-buscador-row">
+                <input type="text" id="buscar-ataque" placeholder="BUSCAR ATAQUE..." autocomplete="off">
+                <button type="button" class="btn-cerrar-ataques" onclick="window.cerrarModalAtaques()">✕ CERRAR</button>
+            </div>
+            <div id="lista-ataques" class="lista-ataques-grid"></div>
+            <div id="detalle-ataque" class="detalle-ataque hidden"></div>
         </div>
     </div>
 

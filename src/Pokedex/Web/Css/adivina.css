@@ -1,0 +1,243 @@
+:root {
+    --bg-dark: #101525;
+    --card-blue: #3b5cca;
+    --card-red: #cc3b3b;
+    --card-green: #2fa357;
+    --card-yellow: #d4b35e;
+    --font-pixel: 'Press Start 2P', cursive;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: var(--font-pixel), cursive;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.game-wrapper {
+    width: 100%;
+    max-width: 480px;
+    text-align: center;
+}
+
+.pixel-logo {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+.pixel-logo span { color: var(--card-yellow); }
+
+.score-box {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.55rem;
+    background: #1b2238;
+    border: 3px solid #2a3350;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.difficulty-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.btn-dificultad {
+    flex: 1;
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    padding: 10px 6px;
+    background: #1b2238;
+    border: 3px solid #2a3350;
+    border-radius: 8px;
+    color: #888;
+    cursor: pointer;
+}
+
+.btn-dificultad.active {
+    background: var(--card-blue);
+    border-color: var(--card-blue);
+    color: white;
+}
+
+.game-screen {
+    background: #1b2238;
+    border: 4px solid #2a3350;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.silhouette-box {
+    background: #0d1120;
+    border-radius: 10px;
+    height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+#poke-img {
+    max-width: 85%;
+    max-height: 85%;
+    image-rendering: pixelated;
+    transition: filter 0.3s;
+}
+
+.silhouette {
+    filter: brightness(0);
+}
+
+/* Al cargar un pokémon nuevo, la silueta se aplica YA, sin animación,
+   para que no se vea el sprite a color ni un instante */
+.sin-transicion {
+    transition: none !important;
+}
+
+.feedback {
+    min-height: 32px;
+    font-size: 0.55rem;
+    margin-bottom: 14px;
+    line-height: 1.6;
+}
+.feedback.correcto { color: #4dd87a; }
+.feedback.incorrecto { color: #ff5b5b; }
+.feedback.hint { color: var(--card-yellow); }
+
+#guess-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+#guess-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 10px;
+    font-family: var(--font-pixel);
+    font-size: 0.6rem;
+    background: #0d1120;
+    border: 3px solid #2a3350;
+    border-radius: 8px;
+    color: white;
+}
+#guess-input:focus { outline: none; border-color: var(--card-blue); }
+
+#guess-form button {
+    font-family: var(--font-pixel);
+    font-size: 0.5rem;
+    background: var(--card-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 12px;
+    cursor: pointer;
+}
+#guess-form button:hover { filter: brightness(1.15); }
+
+.sugerencias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+    max-height: 110px;
+    overflow-y: auto;
+}
+
+.sugerencia-item {
+    font-family: var(--font-pixel);
+    font-size: 0.45rem;
+    background: #0d1120;
+    border: 2px solid #2a3350;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: white;
+    cursor: pointer;
+}
+.sugerencia-item:hover { background: var(--card-blue); }
+
+.hints-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.btn-hint {
+    flex: 1;
+    font-family: var(--font-pixel);
+    font-size: 0.42rem;
+    padding: 10px 4px;
+    background: var(--card-yellow);
+    color: #101525;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.btn-hint:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.pistas-reveladas {
+    text-align: left;
+    font-size: 0.48rem;
+    line-height: 1.8;
+    color: var(--card-yellow);
+    margin-bottom: 14px;
+    min-height: 10px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.action-buttons button {
+    flex: 1;
+    min-width: 120px;
+    font-family: var(--font-pixel);
+    font-size: 0.48rem;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    color: white;
+}
+
+#btn-pista { background: var(--card-yellow); color: #101525; }
+#btn-rendirse { background: var(--card-red); }
+#btn-siguiente { background: var(--card-green); width: 100%; }
+
+.action-buttons button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.hidden { display: none !important; }
+
+.btn-volver {
+    margin-top: 20px;
+    width: 100%;
+    font-family: var(--font-pixel);
+    font-size: 0.55rem;
+    background: #2a3350;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    cursor: pointer;
+}
+.btn-volver:hover { filter: brightness(1.2); }
