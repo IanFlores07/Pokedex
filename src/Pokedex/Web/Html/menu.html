@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pokémon - Selección de Juego</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../Css/menu.css"> 
+    <link rel="stylesheet" href="../Css/menu.css">
 </head>
 <body>
 
@@ -16,29 +16,36 @@
         </header>
 
         <main class="games-grid">
-            <button class="game-card blue" onclick="location.href='adivina.html'">
-                <span class="game-title">¿Cuál es ese Pokémon?</span>
-                <span class="game-icon">❓</span>
+            <button class="game-card" onclick="location.href='juego.html?modo=clasico'">
+                <span class="game-title">Clásico</span><span class="game-icon">🔴</span>
             </button>
-            
-            <button class="game-card dark-blue" onclick="alert('Anagrama: Próximamente')">
-                <span class="game-title">Anagrama</span>
-                <span class="game-icon">🔠</span>
+            <button class="game-card" onclick="location.href='juego.html?modo=silueta'">
+                <span class="game-title">Silueta</span><span class="game-icon">👤</span>
             </button>
-
-            <button class="game-card purple" onclick="alert('Tipos: Próximamente')">
-                <span class="game-title">¿Cuál es su tipo?</span>
-                <span class="game-icon">🔥</span>
+            <button class="game-card" onclick="location.href='juego.html?modo=descripcion'">
+                <span class="game-title">Descripción</span><span class="game-icon">📖</span>
             </button>
-
-            <button class="game-card red" onclick="location.href='peso.html'">
-                <span class="game-title">El Peso Justo</span>
-                <span class="game-icon">⚖️</span>
+            <button class="game-card" onclick="location.href='juego.html?modo=zoom'">
+                <span class="game-title">Zoom</span><span class="game-icon">🔍</span>
+            </button>
+            <button class="game-card" onclick="location.href='juego.html?modo=card'">
+                <span class="game-title">Card</span><span class="game-icon">🃏</span>
+            </button>
+            <button class="game-card" onclick="location.href='juego.html?modo=infinito'">
+                <span class="game-title">Infinito</span><span class="game-icon">♾️</span>
+            </button>
+            <button class="game-card" onclick="location.href='juego.html?modo=anagrama'">
+                <span class="game-title">Anagrama</span><span class="game-icon">🔠</span>
+            </button>
+            <button class="game-card" onclick="location.href='juego.html?modo=tipo'">
+                <span class="game-title">¿Cuál es su tipo?</span><span class="game-icon">🔥</span>
+            </button>
+            <button class="game-card red full-width" onclick="location.href='juego.html?modo=peso'">
+                <span class="game-title">El Peso Justo</span><span class="game-icon">⚖️</span>
             </button>
 
             <button class="game-card full-width green" onclick="location.href='index.html'">
-                <span class="game-title">VOLVER AL INICIO</span>
-                <span class="game-icon">🏠</span>
+                <span class="game-title">VOLVER AL INICIO</span><span class="game-icon">🏠</span>
             </button>
         </main>
 

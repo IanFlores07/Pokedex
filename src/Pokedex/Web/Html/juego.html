@@ -3,30 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>¿Quién es ese Pokémon?</title>
+    <title>Pokémon - Minijuego</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../Css/adivina.css">
+    <link rel="stylesheet" href="../Css/juego.css">
 </head>
 <body>
 
     <div class="game-wrapper">
         <header>
-            <h1 class="pixel-logo">¿QUIÉN ES<span> ESE POKÉMON?</span></h1>
+            <h1 class="pixel-logo" id="titulo-juego">MINIJUEGO</h1>
+            <div class="subtitulo-modo" id="subtitulo-modo"></div>
             <div class="score-box">
                 <span>RACHA: <b id="racha">0</b></span>
+                <span id="vidas-box" class="hidden">VIDAS: <b id="vidas">3</b></span>
                 <span>MEJOR: <b id="mejor-racha">0</b></span>
             </div>
             <div class="difficulty-toggle">
                 <button class="btn-dificultad" id="btn-facil" onclick="cambiarDificultad('facil')">FÁCIL</button>
-                <button class="btn-dificultad active" id="btn-dificil" onclick="cambiarDificultad('dificil')">DIFÍCIL</button>
+                <button class="btn-dificultad" id="btn-dificil" onclick="cambiarDificultad('dificil')">DIFÍCIL</button>
             </div>
         </header>
 
         <main class="game-screen">
-            <div class="silhouette-box">
-                <img id="poke-img" src="" alt="¿Quién es ese Pokémon?" class="silhouette">
-            </div>
+            <div id="zona-juego" class="zona-juego"></div>
 
+            <div id="intentos-info" class="intentos-info"></div>
             <div id="feedback" class="feedback"></div>
 
             <form id="guess-form" autocomplete="off">
@@ -36,16 +37,16 @@
 
             <div id="sugerencias" class="sugerencias hidden"></div>
 
-            <div class="hints-row">
-                <button type="button" class="btn-hint" id="hint-generacion" onclick="mostrarPistaTipo('generacion')">¿GENERACIÓN?</button>
-                <button type="button" class="btn-hint" id="hint-tipo" onclick="mostrarPistaTipo('tipo')">¿TIPO?</button>
-                <button type="button" class="btn-hint" id="hint-inicial" onclick="mostrarPistaTipo('inicial')">¿INICIAL?</button>
+            <div id="pistas-box" class="hints-row hidden">
+                <button type="button" class="btn-hint" id="hint-gen" onclick="mostrarPista('gen')">¿GENERACIÓN?</button>
+                <button type="button" class="btn-hint" id="hint-tipo" onclick="mostrarPista('tipo')">¿TIPO?</button>
+                <button type="button" class="btn-hint" id="hint-inicial" onclick="mostrarPista('inicial')">¿INICIAL?</button>
             </div>
             <div id="pistas-reveladas" class="pistas-reveladas"></div>
 
             <div class="action-buttons">
                 <button id="btn-rendirse" type="button" onclick="rendirse()">👁️ REVELAR</button>
-                <button id="btn-siguiente" type="button" class="hidden" onclick="nuevoPokemon()">SIGUIENTE ▶</button>
+                <button id="btn-siguiente" type="button" class="hidden" onclick="siguiente()">SIGUIENTE ▶</button>
             </div>
         </main>
 
@@ -53,6 +54,6 @@
     </div>
 
     <script src="../Js/datos.js"></script>
-    <script src="../Js/adivina.js"></script>
+    <script src="../Js/juegos.js"></script>
 </body>
 </html>

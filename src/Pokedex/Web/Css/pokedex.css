@@ -164,6 +164,65 @@ html, body {
 
 .hidden { display: none !important; }
 
+.loading-overlay-pokedex {
+    position: absolute;
+    inset: 0;
+    background-color: #000;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+.loading-overlay-pokedex.hidden { display: none !important; }
+
+.loading-energias-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 90%;
+}
+
+/* Cada círculo se apaga y se ilumina en cadena, de izquierda a derecha, en bucle.
+   El ciclo dura 2.7s (9 círculos x 0.3s) y cada uno empieza con un retraso según su posición (--i). */
+.energia-circulo {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--c);
+    border: 3px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    opacity: 0.25;
+    transform: scale(0.85);
+    animation: energia-ilumina 2.7s infinite;
+    animation-delay: calc(var(--i) * 0.3s);
+}
+
+@keyframes energia-ilumina {
+    0%        { opacity: 1;    transform: scale(1.12); box-shadow: 0 0 16px 4px var(--c); }
+    11%       { opacity: 1;    transform: scale(1.12); box-shadow: 0 0 16px 4px var(--c); }
+    22%, 100% { opacity: 0.25; transform: scale(0.85); box-shadow: none; }
+}
+
+.loading-texto {
+    font-family: 'Press Start 2P', monospace;
+    color: #ffcc00;
+    font-size: 1rem;
+    letter-spacing: 2px;
+}
+
+.loading-progreso {
+    font-family: 'Press Start 2P', monospace;
+    color: #fff;
+    font-size: 0.6rem;
+}
+
 .ataques-modal-content {
     width: 90%;
     max-width: 700px;

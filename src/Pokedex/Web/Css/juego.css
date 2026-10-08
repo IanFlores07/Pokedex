@@ -1,0 +1,194 @@
+:root {
+    --bg-dark: #101525;
+    --panel: #1b2238;
+    --borde: #2a3350;
+    --card-blue: #3b5cca;
+    --card-red: #cc3b3b;
+    --card-green: #2fa357;
+    --card-yellow: #d4b35e;
+    --font-pixel: 'Press Start 2P', cursive;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background-color: var(--bg-dark);
+    color: white;
+    font-family: var(--font-pixel), cursive;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px;
+}
+
+.hidden { display: none !important; }
+
+.game-wrapper { width: 100%; max-width: 640px; text-align: center; }
+
+.pixel-logo { font-size: 1rem; line-height: 1.6; margin: 6px 0 4px; color: var(--card-yellow); }
+.subtitulo-modo { font-size: 0.5rem; color: #9fb0e8; min-height: 12px; margin-bottom: 8px; }
+
+.score-box {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-size: 0.55rem; background: var(--panel);
+    border: 3px solid var(--borde); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 12px;
+}
+
+.difficulty-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.btn-dificultad {
+    flex: 1; font-family: var(--font-pixel); font-size: 0.5rem; padding: 10px 6px;
+    background: var(--panel); border: 3px solid var(--borde); border-radius: 8px;
+    color: #888; cursor: pointer;
+}
+.btn-dificultad.active { background: var(--card-blue); border-color: var(--card-blue); color: white; }
+
+.game-screen {
+    background: var(--panel); border: 4px solid var(--borde);
+    border-radius: 12px; padding: 18px;
+}
+
+.zona-juego { margin-bottom: 14px; min-height: 120px; }
+.cargando { font-size: 0.6rem; line-height: 2; color: var(--card-yellow); padding: 50px 0; }
+.ayuda-modo { font-size: 0.48rem; line-height: 1.9; color: #c5cdea; margin: 8px 0 12px; }
+
+.intentos-info { font-size: 0.5rem; color: #9fb0e8; min-height: 12px; margin-bottom: 8px; }
+
+.feedback { min-height: 32px; font-size: 0.55rem; margin-bottom: 14px; line-height: 1.7; }
+.feedback.correcto { color: #4dd87a; }
+.feedback.incorrecto { color: #ff5b5b; }
+.feedback.hint { color: var(--card-yellow); }
+
+/* ---------- imágenes: silueta / revelado ---------- */
+.silueta-box, .revelado-box {
+    background: #ffffff; border-radius: 10px; height: 220px;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    margin: 0 auto;
+}
+.silueta-box img, .revelado-box img { max-width: 85%; max-height: 85%; }
+.revelado-box.pequeno { height: 110px; margin-bottom: 12px; }
+.silueta-box img { filter: brightness(0); }                     /* sin transición: no hay destello de color */
+.silueta-box.revelada img { filter: none; transition: filter 0.5s; }
+
+.zoom-box {
+    background-color: #fff; background-repeat: no-repeat;
+    border-radius: 10px; height: 240px; transition: background-size 0.5s, background-position 0.5s;
+}
+
+/* ---------- descripción ---------- */
+.desc-card {
+    background: #f4f1de; color: #1a1a1a; border: 4px solid #000;
+    border-radius: 8px; padding: 16px; text-align: left;
+    font-size: 0.6rem; line-height: 2;
+}
+.desc-extras { margin-top: 12px; color: #7a1f1f; font-size: 0.5rem; line-height: 1.9; }
+
+/* ---------- carta ---------- */
+.tcg-card {
+    --tc: #c9a227;
+    background: linear-gradient(160deg, #fffbe6, #f3e7b0);
+    border: 8px solid var(--tc); border-radius: 12px;
+    color: #1a1a1a; text-align: left; overflow: hidden;
+}
+.tcg-head {
+    display: flex; justify-content: space-between; padding: 10px 12px;
+    font-size: 0.6rem; background: rgba(0,0,0,0.08);
+}
+.tcg-arte {
+    margin: 10px 12px; height: 110px; background: #222; color: #fff;
+    border: 3px solid #000; display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+}
+.tcg-cuerpo { padding: 4px 12px 12px; }
+.tcg-fila { display: flex; flex-direction: column; gap: 4px; padding: 7px 0; border-top: 2px dashed rgba(0,0,0,0.25); }
+.tcg-label { font-size: 0.42rem; color: #555; }
+.tcg-valor { font-size: 0.52rem; line-height: 1.7; }
+.tcg-fila.oculta .tcg-valor { color: #aaa; }
+
+/* ---------- anagrama ---------- */
+.anagrama { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.ficha-letra {
+    width: 34px; height: 38px; display: flex; align-items: center; justify-content: center;
+    background: var(--card-yellow); color: #101525; border: 3px solid #000; border-radius: 6px; font-size: 0.8rem;
+}
+
+/* ---------- tipo ---------- */
+.tipo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0 12px; }
+.tipo-btn {
+    font-family: var(--font-pixel); font-size: 0.42rem; padding: 10px 2px;
+    background: var(--c); color: #fff; border: 3px solid #000; border-radius: 6px;
+    cursor: pointer; opacity: 0.55; text-shadow: 1px 1px 0 rgba(0,0,0,0.6);
+}
+.tipo-btn.sel { opacity: 1; outline: 3px solid #fff; transform: scale(1.04); }
+.chips-tipo { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.chip-tipo { font-size: 0.5rem; padding: 8px 12px; border-radius: 6px; border: 2px solid #000; text-shadow: 1px 1px 0 rgba(0,0,0,0.6); }
+
+.btn-accion {
+    font-family: var(--font-pixel); font-size: 0.55rem; background: var(--card-blue); color: #fff;
+    border: none; border-radius: 8px; padding: 12px 18px; cursor: pointer;
+}
+.btn-accion:hover { filter: brightness(1.15); }
+
+/* ---------- peso ---------- */
+.peso-row { display: flex; gap: 8px; justify-content: center; }
+#peso-input {
+    width: 140px; padding: 12px 10px; font-family: var(--font-pixel); font-size: 0.7rem;
+    background: #0d1120; border: 3px solid var(--borde); border-radius: 8px; color: #fff;
+}
+#peso-input:focus { outline: none; border-color: var(--card-blue); }
+
+/* ---------- clásico ---------- */
+.leyenda { padding: 2px 6px; border-radius: 4px; color: #fff; }
+.leyenda.ok { background: #2fa357; } .leyenda.parcial { background: #c98a1b; } .leyenda.mal { background: #a83232; }
+.tabla-scroll { overflow-x: auto; }
+.clasico-tabla { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 0.45rem; }
+.clasico-tabla th { color: #9fb0e8; padding: 6px 2px; }
+.clasico-tabla td { padding: 8px 4px; border-radius: 4px; color: #fff; text-align: center; }
+.clasico-tabla td.ok { background: #2fa357; }
+.clasico-tabla td.parcial { background: #c98a1b; }
+.clasico-tabla td.mal { background: #a83232; }
+.clasico-tabla td.celda-nombre { background: #0d1120; text-align: left; min-width: 90px; }
+.mini-sprite { width: 32px; height: 32px; vertical-align: middle; image-rendering: pixelated; margin-right: 4px; }
+
+/* ---------- entrada y botones ---------- */
+#guess-form { display: flex; gap: 8px; margin-bottom: 14px; }
+#guess-input {
+    flex: 1; min-width: 0; padding: 12px 10px; font-family: var(--font-pixel); font-size: 0.6rem;
+    background: #0d1120; border: 3px solid var(--borde); border-radius: 8px; color: white;
+}
+#guess-input:focus { outline: none; border-color: var(--card-blue); }
+#guess-form button {
+    font-family: var(--font-pixel); font-size: 0.5rem; background: var(--card-blue); color: white;
+    border: none; border-radius: 8px; padding: 0 12px; cursor: pointer;
+}
+
+.sugerencias { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 14px; max-height: 110px; overflow-y: auto; }
+.sugerencia-item {
+    font-family: var(--font-pixel); font-size: 0.45rem; background: #0d1120; border: 2px solid var(--borde);
+    border-radius: 6px; padding: 8px 10px; color: white; cursor: pointer;
+}
+.sugerencia-item:hover { background: var(--card-blue); }
+
+.hints-row { display: flex; gap: 6px; margin-bottom: 8px; }
+.btn-hint {
+    flex: 1; font-family: var(--font-pixel); font-size: 0.42rem; padding: 10px 4px;
+    background: var(--card-yellow); color: #101525; border: none; border-radius: 8px; cursor: pointer;
+}
+.btn-hint:disabled { opacity: 0.35; cursor: not-allowed; }
+.pistas-reveladas { text-align: left; font-size: 0.48rem; line-height: 1.8; color: var(--card-yellow); margin-bottom: 14px; min-height: 10px; }
+
+.action-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.action-buttons button {
+    flex: 1; min-width: 120px; font-family: var(--font-pixel); font-size: 0.48rem; padding: 12px 8px;
+    border: none; border-radius: 8px; cursor: pointer; color: white;
+}
+#btn-rendirse { background: var(--card-red); }
+#btn-siguiente { background: var(--card-green); width: 100%; }
+.action-buttons button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-volver {
+    margin-top: 20px; width: 100%; font-family: var(--font-pixel); font-size: 0.55rem;
+    background: var(--borde); color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer;
+}
+.btn-volver:hover { filter: brightness(1.2); }

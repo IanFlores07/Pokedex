@@ -295,7 +295,12 @@ function construirCajaTipos() {
     Object.keys(traduccionTipos).forEach(tipoIngles => {
         const btn = document.createElement("button");
         btn.textContent = traduccionTipos[tipoIngles];
-        btn.style.borderLeft = `4px solid ${typeColors[tipoIngles]}`;
+        const colorTipo = typeColors[tipoIngles] || "#666";
+        btn.style.backgroundColor = colorTipo + " !important";
+        btn.style.setProperty("background-color", colorTipo, "important");
+        btn.style.setProperty("border-color", "#000", "important");
+        btn.style.setProperty("color", "#fff", "important");
+        btn.style.setProperty("text-shadow", "1px 1px 0 rgba(0,0,0,0.6)", "important");
         btn.onclick = () => window.filtrarPorTipo(tipoIngles);
         tiposBox.appendChild(btn);
     });
@@ -318,18 +323,22 @@ window.abrirModalAtaques = async function() {
         const cont = document.getElementById("lista-ataques");
         if (cont) cont.innerHTML = `<p style="font-size:8px;padding:10px;grid-column:1/-1;">CARGANDO LISTA DE ATAQUES...</p>`;
         try {
-            // Pedimos la lista de ataques y el CSV con TODOS los nombres en español
-            // a la vez, en vez de traducir ataque por ataque (sería lentísimo).
-            const [resLista, resCsv] = await Promise.all([
+            // Pedimos TODO de golpe: lista de ataques, nombres en español, tipo de cada
+            // ataque, y la tabla que traduce el nº de tipo a su nombre en inglés.
+            const [resLista, resCsvNombres, resCsvMoves, resCsvTypes] = await Promise.all([
                 fetch('https://pokeapi.co/api/v2/move?limit=1000'),
-                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/move_names.csv')
+                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/move_names.csv'),
+                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/moves.csv'),
+                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/types.csv')
             ]);
             const data = await resLista.json();
-            const textoCsv = await resCsv.text();
+            const textoCsvNombres = await resCsvNombres.text();
+            const textoCsvMoves = await resCsvMoves.text();
+            const textoCsvTypes = await resCsvTypes.text();
 
-            // Parseamos el CSV: move_id,local_language_id,name — solo nos quedamos con el idioma 7 (español)
+            // 1) Nombres en español: move_id,local_language_id,name — idioma 7 = español
             const traduccionesPorId = {};
-            textoCsv.split("\n").forEach(linea => {
+            textoCsvNombres.split("\n").forEach(linea => {
                 const partes = linea.split(",");
                 if (partes.length < 3) return;
                 if (partes[1].trim() === "7") {
@@ -337,13 +346,38 @@ window.abrirModalAtaques = async function() {
                 }
             });
 
+            // 2) Tabla tipo_id -> nombre de tipo en inglés (leemos la cabecera para no adivinar la columna)
+            const lineasTypes = textoCsvTypes.split("\n").filter(l => l.trim());
+            const cabeceraTypes = lineasTypes[0].split(",");
+            const idxTypeIdentifier = cabeceraTypes.indexOf("identifier");
+            const nombreTipoPorId = {};
+            lineasTypes.slice(1).forEach(linea => {
+                const partes = linea.split(",");
+                if (partes.length <= idxTypeIdentifier) return;
+                nombreTipoPorId[partes[0].trim()] = partes[idxTypeIdentifier].trim();
+            });
+
+            // 3) Tipo de cada ataque: leemos la cabecera de moves.csv para localizar "type_id"
+            const lineasMoves = textoCsvMoves.split("\n").filter(l => l.trim());
+            const cabeceraMoves = lineasMoves[0].split(",");
+            const idxMoveTypeId = cabeceraMoves.indexOf("type_id");
+            const tipoIngPorMoveId = {};
+            lineasMoves.slice(1).forEach(linea => {
+                const partes = linea.split(",");
+                if (partes.length <= idxMoveTypeId) return;
+                const tipoId = partes[idxMoveTypeId].trim();
+                tipoIngPorMoveId[partes[0].trim()] = nombreTipoPorId[tipoId] || null;
+            });
+
             listaAtaquesGlobal = data.results.map(m => {
                 const partesUrl = m.url.split("/").filter(Boolean);
                 const idAtaque = partesUrl[partesUrl.length - 1];
                 const nombreEs = traduccionesPorId[idAtaque];
+                const tipoIngles = tipoIngPorMoveId[idAtaque] || null;
                 return {
                     slug: m.name,
-                    nombreMostrado: nombreEs || m.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+                    nombreMostrado: nombreEs || m.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+                    tipoIngles
                 };
             }).sort((a, b) => a.nombreMostrado.localeCompare(b.nombreMostrado, "es"));
             ataquesCargados = true;
@@ -370,6 +404,9 @@ function renderizarListaAtaques(lista) {
         item.type = "button";
         item.className = "item-ataque";
         item.textContent = m.nombreMostrado;
+        if (m.tipoIngles && typeColors[m.tipoIngles]) {
+            item.style.borderLeft = `5px solid ${typeColors[m.tipoIngles]}`;
+        }
         item.onclick = () => window.mostrarDetalleAtaque(m.slug, m.nombreMostrado);
         cont.appendChild(item);
     });
@@ -446,6 +483,7 @@ document.addEventListener("DOMContentLoaded", () => {
     window.mostrarPantallaInicialOcupandoTodo();
     precargarCatalogoBuscar();
     construirCajaTipos();
+    precargarPokedexCompleta(); // pantalla de carga con Wooper/Goomy hasta tener todo cacheado
 
     const btnGenToggle = document.getElementById("btn-toggle-gens");
     const gensBox = document.getElementById("gens-box");
@@ -629,6 +667,69 @@ window.mostrarCajaGeneracionDetalle = async function(numGen) {
     } catch (error) {}
 };
 
+// Caché de Pokémon ya consultados a la PokéAPI: {id -> {data, speciesData, evoChainData}}.
+// Así, volver a un Pokémon que ya visitaste (o uno que se precargó en segundo plano)
+// no vuelve a pedir nada a la red, se muestra al instante.
+window.cachePokemonCompleto = window.cachePokemonCompleto || {};
+
+// Ya no hace falta precargar "sobre la marcha": toda la Pokédex se carga de golpe
+// al entrar (ver precargarPokedexCompleta), así que esto queda vacío por compatibilidad.
+function precargarVecinos(idActual) {}
+
+// Evita pedir la misma cadena evolutiva más de una vez (muchos Pokémon comparten familia)
+window.cacheEvoChainPorUrl = window.cacheEvoChainPorUrl || {};
+
+async function cargarDatosCompletosPokemon(id) {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
+    const data = await res.json();
+    const resEspecie = await fetch(data.species.url);
+    const speciesData = await resEspecie.json();
+
+    let evoChainData = null;
+    if (speciesData.evolution_chain?.url) {
+        const urlEvo = speciesData.evolution_chain.url;
+        if (window.cacheEvoChainPorUrl[urlEvo]) {
+            evoChainData = window.cacheEvoChainPorUrl[urlEvo];
+        } else {
+            try {
+                const resEvo = await fetch(urlEvo);
+                evoChainData = await resEvo.json();
+                window.cacheEvoChainPorUrl[urlEvo] = evoChainData;
+            } catch (ee) { evoChainData = null; }
+        }
+    }
+    return { data, speciesData, evoChainData };
+}
+
+// Carga TODA la Pokédex (1 a 1025) nada más entrar, mostrando una pantalla de carga
+// visible con progreso real, para que luego cambiar entre Pokémon sea instantáneo.
+async function precargarPokedexCompleta() {
+    const overlay = document.getElementById("loading-overlay-pokedex");
+    const contador = document.getElementById("loading-progreso");
+    const TOTAL = 1025;
+    const CONCURRENCIA = 20; // nº de peticiones en paralelo por lote
+    let completados = 0;
+
+    const ids = Array.from({ length: TOTAL }, (_, i) => i + 1);
+
+    for (let i = 0; i < ids.length; i += CONCURRENCIA) {
+        const lote = ids.slice(i, i + CONCURRENCIA);
+        await Promise.all(lote.map(async (id) => {
+            if (!window.cachePokemonCompleto[id]) {
+                try {
+                    window.cachePokemonCompleto[id] = await cargarDatosCompletosPokemon(id);
+                } catch (e) {
+                    // si uno en concreto falla, seguimos con el resto sin bloquear la carga
+                }
+            }
+            completados++;
+            if (contador) contador.textContent = `${completados} / ${TOTAL}`;
+        }));
+    }
+
+    if (overlay) overlay.classList.add("hidden");
+}
+
 window.cargarPokemonData = async function(id) {
     currentPokemonId = id;
     vistaActual = "detalle";
@@ -646,6 +747,24 @@ window.cargarPokemonData = async function(id) {
         let data = null;
         let speciesData = null;
         let evoChainData = null;
+
+        // Si ya tenemos este Pokémon en caché (visitado antes o precargado en segundo
+        // plano), nos lo ahorramos todo y vamos directos a pintar la ficha.
+        if (id < 1026 && window.cachePokemonCompleto[id]) {
+            const cacheado = window.cachePokemonCompleto[id];
+            data = cacheado.data;
+            speciesData = cacheado.speciesData;
+            evoChainData = cacheado.evoChainData;
+
+            window.currentPokemonDataStorage = data;
+            await window.renderizarVistaDetail(data, speciesData, evoChainData);
+            const pokeIdDisplayCache = document.getElementById("poke-id");
+            if (pokeIdDisplayCache) pokeIdDisplayCache.innerText = "#" + String(id).padStart(3, '0');
+            precargarVecinos(id);
+            conmutarLayoutEntorno("detalle");
+            window.manejarVisualizacionMedia(data);
+            return;
+        }
 
         // Soporte especial para la Generación 10 personalizada o peticiones estándar
         if (id >= 1026) {
@@ -676,22 +795,21 @@ window.cargarPokemonData = async function(id) {
             };
             evoChainData = { chain: null };
         } else {
-            // Carga normal desde PokéAPI
-            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
-            data = await res.json();
-            const resEspecie = await fetch(data.species.url);
-            speciesData = await resEspecie.json();
-
-            if (speciesData.evolution_chain?.url) {
-                try {
-                    const resEvo = await fetch(speciesData.evolution_chain.url);
-                    evoChainData = await resEvo.json();
-                } catch(ee) { evoChainData = null; }
-            }
+            // Carga normal desde PokéAPI (lo normal es que esto ya esté en caché
+            // porque precargarPokedexCompleta() lo trajo todo al entrar)
+            const resultado = await cargarDatosCompletosPokemon(id);
+            data = resultado.data;
+            speciesData = resultado.speciesData;
+            evoChainData = resultado.evoChainData;
         }
 
         // Guardamos el objeto en caché global para variantes visuales
         window.currentPokemonDataStorage = data;
+
+        // Y también en la caché por ID, para que no haya que volver a pedirlo nunca más
+        if (id < 1026) {
+            window.cachePokemonCompleto[id] = { data, speciesData, evoChainData };
+        }
         
         // 1. Renderizamos la preciosa vista detallada con tablas que tienes abajo
         await window.renderizarVistaDetail(data, speciesData, evoChainData);
@@ -701,6 +819,9 @@ window.cargarPokemonData = async function(id) {
         if (pokeIdDisplay) {
             pokeIdDisplay.innerText = "#" + String(id).padStart(3, '0');
         }
+
+        // Precargamos el anterior/siguiente en segundo plano para que las flechas ◄ ► vayan fluidas
+        precargarVecinos(id);
 
         // 3. Conmutamos los layouts para mostrar las columnas y cargamos el canvas 3D o 2D
         conmutarLayoutEntorno("detalle");
