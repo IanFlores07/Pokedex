@@ -16,6 +16,100 @@ let previousMousePosition = { x: 0, y: 0 };
 let mainMixer = null;
 let mainClock = null;
 
+
+// -------------------------------------------------------------------------
+// PREPARACIÓN DEL MODELO 3D (compartida por el visor pequeño y el del modal)
+//
+// IMPORTANTE: NO se llama a skeleton.pose(). En modelos con esqueleto, three.js
+// lo aplica mal si el hueso raíz cuelga de un nodo con escala/rotación (muy típico
+// en modelos sacados de juegos) y duplica esa transformación: el modelo sale
+// colgando, de lado o gigante. Sin pose() se respeta la pose con la que se exportó.
+// -------------------------------------------------------------------------
+
+// Caja del modelo YA deformado por su esqueleto. La caja de la geometría "cruda"
+// no sirve con huesos: puede salir muchísimo más grande o pequeña que lo que se ve.
+function calcularCajaReal(modelo) {
+    modelo.updateMatrixWorld(true);
+    const caja = new THREE.Box3();
+    const v = new THREE.Vector3();
+    let hayDatos = false;
+    modelo.traverse((hijo) => {
+        if (!hijo.isMesh || !hijo.geometry || !hijo.geometry.attributes || !hijo.geometry.attributes.position) return;
+        const pos = hijo.geometry.attributes.position;
+        const paso = Math.max(1, Math.floor(pos.count / 20000)); // con 20.000 puntos por malla sobra
+        const conHuesos = hijo.isSkinnedMesh && hijo.skeleton && typeof hijo.boneTransform === "function"
+                          && hijo.geometry.attributes.skinIndex && hijo.geometry.attributes.skinWeight;
+        for (let i = 0; i < pos.count; i += paso) {
+            v.fromBufferAttribute(pos, i);              // (algunas versiones de three exigen partir de la posición original)
+            if (conHuesos) hijo.boneTransform(i, v);
+            v.applyMatrix4(hijo.matrixWorld);
+            if (isFinite(v.x) && isFinite(v.y) && isFinite(v.z)) { caja.expandByPoint(v); hayDatos = true; }
+        }
+    });
+    return hayDatos && !caja.isEmpty() ? caja : null;
+}
+
+// Deja el modelo listo: materiales, animación, centrado en el origen (para que gire
+// sobre sí mismo sin irse de plano) y distancia de cámara que lo encuadra entero.
+function prepararModelo3D(gltf, camara, margen) {
+    const modelo = gltf.scene;
+
+    modelo.traverse((hijo) => {
+        if (hijo.isSkinnedMesh) hijo.frustumCulled = false; // evita que desaparezca por un cálculo de cámara erróneo
+        if (hijo.isMesh && hijo.material) {
+            const m = hijo.material;
+            if (m.opacity === 0) m.opacity = 1;
+            m.transparent = m.opacity < 1;
+            m.depthWrite = true;
+            m.side = THREE.DoubleSide;
+            m.roughness = 1.0;
+            m.metalness = 0.0;
+            if (m.clearcoat !== undefined) m.clearcoat = 0.0;
+            if (m.emissive) m.emissive.setHex(0x000000);
+            if (m.metalnessMap) m.metalnessMap = null;
+            if (m.roughnessMap) m.roughnessMap = null;
+            if (m.map) m.map.anisotropy = 4;
+        }
+    });
+
+    let mixer = null;
+    const clip = elegirClipAnimacion(gltf.animations);
+    if (clip) {
+        mixer = new THREE.AnimationMixer(modelo);
+        mixer.clipAction(clip).play();
+        mixer.update(0); // aplica ya el primer fotograma para medir el modelo en su pose real
+    }
+
+    modelo.updateMatrixWorld(true);
+    let caja = calcularCajaReal(modelo);
+    if (!caja) caja = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.2, 1.2, 1.2));
+
+    const centro = caja.getCenter(new THREE.Vector3());
+    const tam = caja.getSize(new THREE.Vector3());
+
+    // Centramos el modelo en el origen dentro de un "pivote": al girar el pivote,
+    // el Pokémon gira sobre su propio centro y siempre se queda en el encuadre.
+    modelo.position.sub(centro);
+    const pivote = new THREE.Group();
+    pivote.add(modelo);
+
+    // Normalizamos el tamaño: la dimensión más grande pasa a medir 1 unidad. Así da igual en qué
+    // unidades se exportó el modelo (gigante, diminuto...): todos se encuadran igual y sin recortes de cámara.
+    const mayor = Math.max(tam.x, tam.y, tam.z);
+    const k = (isFinite(mayor) && mayor > 1e-9) ? 1 / mayor : 1;
+    pivote.scale.set(k, k, k);
+
+    const radioH = 0.5 * Math.sqrt(tam.x * tam.x + tam.z * tam.z) * k || 0.6;
+    const alturaMedia = (tam.y * k / 2) || 0.6;
+    const fovV = camara.fov * Math.PI / 180;
+    const fovH = 2 * Math.atan(Math.tan(fovV / 2) * camara.aspect);
+
+    let distancia = Math.max(alturaMedia / Math.tan(fovV / 2), radioH / Math.tan(fovH / 2)) * margen + radioH * 0.5;
+    if (!isFinite(distancia) || distancia <= 0) distancia = 2.5;
+
+    return { pivote, mixer, distancia };
+}
+
 // Elige qué animación reproducir: prioriza "idle"/"pose"/"stand", si no hay, usa la primera.
 function elegirClipAnimacion(animaciones) {
     if (!animaciones || animaciones.length === 0) return null;
@@ -313,6 +407,70 @@ function construirCajaTipos() {
 let listaAtaquesGlobal = [];
 let ataquesCargados = false;
 
+// =========================================================================
+// CATÁLOGO DE ATAQUES: nombre en español, tipo, poder y precisión de TODOS los ataques.
+// Se descarga UNA vez (3 CSV oficiales de la PokéAPI) y lo comparten la lista de ataques y la
+// tabla de ataques de cada Pokémon. Así abrir una ficha ya no tiene que pedir sus 22 ataques
+// uno detrás de otro a la red (que era lo que hacía lenta cada ficha).
+// =========================================================================
+window.catalogoAtaques = null;
+let promesaCatalogoAtaques = null;
+
+function idDesdeUrl(url) {
+    const partes = String(url).split("/").filter(Boolean);
+    return parseInt(partes[partes.length - 1], 10);
+}
+
+function filasCsv(texto) {
+    const lineas = texto.split(/\r?\n/).filter(l => l.trim());
+    return { cabecera: lineas[0].split(",").map(c => c.trim()), filas: lineas.slice(1).map(l => l.split(",")) };
+}
+
+function cargarCatalogoAtaques() {
+    if (window.catalogoAtaques) return Promise.resolve(window.catalogoAtaques);
+    if (!promesaCatalogoAtaques) {
+        const base = 'https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/';
+        promesaCatalogoAtaques = Promise.all(['moves.csv', 'move_names.csv', 'types.csv'].map(f =>
+            fetch(base + f).then(r => { if (!r.ok) throw new Error("csv " + f); return r.text(); })
+        )).then(([txtMoves, txtNombres, txtTypes]) => {
+            const tipos = filasCsv(txtTypes);
+            const iIdent = tipos.cabecera.indexOf("identifier");
+            const tipoPorId = {};
+            tipos.filas.forEach(f => { tipoPorId[f[0].trim()] = (f[iIdent] || "").trim(); });
+
+            // Nombres en español (idioma 7)
+            const nombres = filasCsv(txtNombres);
+            const iMove = nombres.cabecera.indexOf("move_id"), iLang = nombres.cabecera.indexOf("local_language_id"), iName = nombres.cabecera.indexOf("name");
+            const nombreEs = {};
+            nombres.filas.forEach(f => { if ((f[iLang] || "").trim() === "7") nombreEs[f[iMove].trim()] = f.slice(iName).join(",").trim(); });
+
+            const mv = filasCsv(txtMoves);
+            const ix = (n) => mv.cabecera.indexOf(n);
+            const num = (v) => { v = (v || "").trim(); return v === "" ? null : parseInt(v, 10); };
+            const porId = {}, lista = [];
+            mv.filas.forEach(f => {
+                const idTxt = (f[ix("id")] || "").trim();
+                const slug = (f[ix("identifier")] || "").trim();
+                if (!idTxt || !slug) return;
+                const info = {
+                    id: parseInt(idTxt, 10), slug,
+                    nombre: nombreEs[idTxt] || slug.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+                    tipoIngles: tipoPorId[(f[ix("type_id")] || "").trim()] || null,
+                    poder: num(f[ix("power")]), precision: num(f[ix("accuracy")])
+                };
+                porId[info.id] = info;
+                lista.push(info);
+            });
+            lista.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+            window.catalogoAtaques = { porId, lista };
+            return window.catalogoAtaques;
+        }).catch(e => { promesaCatalogoAtaques = null; throw e; });
+    }
+    return promesaCatalogoAtaques;
+}
+
+const cacheAtaqueRed = {};
+
 window.abrirModalAtaques = async function() {
     const overlay = document.getElementById("modal-ataques");
     if (overlay) overlay.classList.add("active");
@@ -323,63 +481,10 @@ window.abrirModalAtaques = async function() {
         const cont = document.getElementById("lista-ataques");
         if (cont) cont.innerHTML = `<p style="font-size:8px;padding:10px;grid-column:1/-1;">CARGANDO LISTA DE ATAQUES...</p>`;
         try {
-            // Pedimos TODO de golpe: lista de ataques, nombres en español, tipo de cada
-            // ataque, y la tabla que traduce el nº de tipo a su nombre en inglés.
-            const [resLista, resCsvNombres, resCsvMoves, resCsvTypes] = await Promise.all([
-                fetch('https://pokeapi.co/api/v2/move?limit=1000'),
-                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/move_names.csv'),
-                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/moves.csv'),
-                fetch('https://raw.githubusercontent.com/PokeAPI/pokeapi/master/data/v2/csv/types.csv')
-            ]);
-            const data = await resLista.json();
-            const textoCsvNombres = await resCsvNombres.text();
-            const textoCsvMoves = await resCsvMoves.text();
-            const textoCsvTypes = await resCsvTypes.text();
-
-            // 1) Nombres en español: move_id,local_language_id,name — idioma 7 = español
-            const traduccionesPorId = {};
-            textoCsvNombres.split("\n").forEach(linea => {
-                const partes = linea.split(",");
-                if (partes.length < 3) return;
-                if (partes[1].trim() === "7") {
-                    traduccionesPorId[partes[0].trim()] = partes.slice(2).join(",").trim();
-                }
-            });
-
-            // 2) Tabla tipo_id -> nombre de tipo en inglés (leemos la cabecera para no adivinar la columna)
-            const lineasTypes = textoCsvTypes.split("\n").filter(l => l.trim());
-            const cabeceraTypes = lineasTypes[0].split(",");
-            const idxTypeIdentifier = cabeceraTypes.indexOf("identifier");
-            const nombreTipoPorId = {};
-            lineasTypes.slice(1).forEach(linea => {
-                const partes = linea.split(",");
-                if (partes.length <= idxTypeIdentifier) return;
-                nombreTipoPorId[partes[0].trim()] = partes[idxTypeIdentifier].trim();
-            });
-
-            // 3) Tipo de cada ataque: leemos la cabecera de moves.csv para localizar "type_id"
-            const lineasMoves = textoCsvMoves.split("\n").filter(l => l.trim());
-            const cabeceraMoves = lineasMoves[0].split(",");
-            const idxMoveTypeId = cabeceraMoves.indexOf("type_id");
-            const tipoIngPorMoveId = {};
-            lineasMoves.slice(1).forEach(linea => {
-                const partes = linea.split(",");
-                if (partes.length <= idxMoveTypeId) return;
-                const tipoId = partes[idxMoveTypeId].trim();
-                tipoIngPorMoveId[partes[0].trim()] = nombreTipoPorId[tipoId] || null;
-            });
-
-            listaAtaquesGlobal = data.results.map(m => {
-                const partesUrl = m.url.split("/").filter(Boolean);
-                const idAtaque = partesUrl[partesUrl.length - 1];
-                const nombreEs = traduccionesPorId[idAtaque];
-                const tipoIngles = tipoIngPorMoveId[idAtaque] || null;
-                return {
-                    slug: m.name,
-                    nombreMostrado: nombreEs || m.name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
-                    tipoIngles
-                };
-            }).sort((a, b) => a.nombreMostrado.localeCompare(b.nombreMostrado, "es"));
+            const cat = await cargarCatalogoAtaques();
+            listaAtaquesGlobal = cat.lista
+                .filter(m => m.id < 10000) // fuera los ataques "Oscuros" de Colosseum/XD, que no se aprenden
+                .map(m => ({ slug: m.slug, nombreMostrado: m.nombre, tipoIngles: m.tipoIngles }));
             ataquesCargados = true;
         } catch (e) {
             if (cont) cont.innerHTML = `<p style="font-size:8px;color:red;padding:10px;grid-column:1/-1;">ERROR CARGANDO LOS ATAQUES.</p>`;
@@ -444,9 +549,13 @@ window.mostrarDetalleAtaque = async function(slug, nombreMostrado) {
                 <span class="chip-stat-ataque">PRECISIÓN: ${precision}</span>
                 <span class="chip-stat-ataque">PP: ${pp}</span>
             </div>
+            <button type="button" class="btn-filtrar-ataque" id="btn-filtrar-ataque">🔎 FILTRAR LA POKÉDEX POR ESTE ATAQUE</button>
             <p class="ataque-aprendices-titulo">POKÉMON QUE LO PUEDEN APRENDER (${data.learned_by_pokemon.length}):</p>
             <div id="grid-aprendices" class="lista-ataques-grid grid-gens-3x3"></div>
         `;
+
+        const btnFiltrarAtaque = document.getElementById("btn-filtrar-ataque");
+        if (btnFiltrarAtaque) btnFiltrarAtaque.onclick = () => window.filtrarPorAtaque(slug, nombreEs);
 
         const gridAprendices = document.getElementById("grid-aprendices");
         if (data.learned_by_pokemon.length === 0) {
@@ -712,6 +821,9 @@ async function precargarPokedexCompleta() {
 
     const ids = Array.from({ length: TOTAL }, (_, i) => i + 1);
 
+    // El catálogo de ataques se baja a la vez que los Pokémon (así las fichas salen al instante)
+    const promesaCat = cargarCatalogoAtaques().catch(() => {});
+
     for (let i = 0; i < ids.length; i += CONCURRENCIA) {
         const lote = ids.slice(i, i + CONCURRENCIA);
         await Promise.all(lote.map(async (id) => {
@@ -727,6 +839,7 @@ async function precargarPokedexCompleta() {
         }));
     }
 
+    await promesaCat;
     if (overlay) overlay.classList.add("hidden");
 }
 
@@ -1011,28 +1124,38 @@ window.renderizarVistaDetail = async function(data, speciesData, evoChainData) {
     let movesToFetch = data.moves ? data.moves.slice(0, 22) : [];
     let movesRowsHtml = "";
 
-    for (let m of movesToFetch) {
-        let moveName = m.move.name.replace("-", " ").toUpperCase(); 
-        let typeName = "normal", power = "-", accuracy = "-";
-        try {
-            let moveRes = await fetch(m.move.url);
-            if (moveRes.ok) {
-                let moveData = await moveRes.json();
-                let esp = moveData.names.find(n => n.language.name === "es");
-                if (esp) moveName = esp.name.toUpperCase();
-                typeName = moveData.type.name;
-                power = moveData.power !== null ? moveData.power : "-";
-                accuracy = moveData.accuracy !== null ? moveData.accuracy + "%" : "-";
-            }
-        } catch(err) {}
+    let catalogo = null;
+    try { catalogo = await cargarCatalogoAtaques(); } catch (e) { catalogo = null; }
 
-        let badgeColor = typeColors[typeName.toLowerCase()] || "#666";
+    // Con el catálogo es instantáneo (sin red). Si no se pudo descargar, se piden en PARALELO
+    // (no uno a uno) y se recuerdan para la próxima vez.
+    const infoAtaques = await Promise.all(movesToFetch.map(async (m) => {
+        const base = { nombre: m.move.name.replace(/-/g, " ").toUpperCase(), tipo: "normal", poder: "-", precision: "-" };
+        const info = catalogo && catalogo.porId[idDesdeUrl(m.move.url)];
+        if (info) {
+            return { nombre: info.nombre.toUpperCase(), tipo: info.tipoIngles || "normal",
+                     poder: info.poder !== null ? info.poder : "-", precision: info.precision !== null ? info.precision + "%" : "-" };
+        }
+        try {
+            if (!cacheAtaqueRed[m.move.url]) cacheAtaqueRed[m.move.url] = fetch(m.move.url).then(r => r.ok ? r.json() : null);
+            const d = await cacheAtaqueRed[m.move.url];
+            if (d) {
+                const esp = d.names.find(n => n.language.name === "es");
+                return { nombre: (esp ? esp.name : base.nombre).toUpperCase(), tipo: d.type.name,
+                         poder: d.power !== null ? d.power : "-", precision: d.accuracy !== null ? d.accuracy + "%" : "-" };
+            }
+        } catch (err) {}
+        return base;
+    }));
+
+    for (const a of infoAtaques) {
+        let badgeColor = typeColors[a.tipo.toLowerCase()] || "#666";
         movesRowsHtml += `
             <tr>
-                <td style="text-align:left; font-weight:bold; padding-left:6px;">${moveName}</td>
-                <td><span class="move-type-pill" style="background-color:${badgeColor};">${traduccionTipos[typeName.toLowerCase()] || typeName.toUpperCase()}</span></td>
-                <td>${power}</td>
-                <td style="padding-right:6px;">${accuracy}</td>
+                <td style="text-align:left; font-weight:bold; padding-left:6px;">${a.nombre}</td>
+                <td><span class="move-type-pill" style="background-color:${badgeColor};">${traduccionTipos[a.tipo.toLowerCase()] || a.tipo.toUpperCase()}</span></td>
+                <td>${a.poder}</td>
+                <td style="padding-right:6px;">${a.precision}</td>
             </tr>
         `;
     }
@@ -1095,45 +1218,57 @@ window.manejarVisualizacionMedia = function(data) {
         box.appendChild(cargandoTxt);
         setTimeout(() => { window.inicializarVisorBlender3D(box, data.id); }, 50);
     } else {
-        let urlPoster = data.sprites?.other?.["official-artwork"]?.front_default;
-        let urlPosterShiny = data.sprites?.other?.["official-artwork"]?.front_shiny;
-        let urlSpritePx = data.sprites?.front_default;
-        let urlSpritePxShiny = data.sprites?.front_shiny;
-        // Sprites animados (GIF) de Pokémon Showdown — solo cubren hasta ~Gen 8
-        let urlAnimado = `https://play.pokemonshowdown.com/sprites/ani/${data.name}.gif`;
-        let urlAnimadoShiny = `https://play.pokemonshowdown.com/sprites/ani-shiny/${data.name}.gif`;
+        const shiny = (currentVariante === "shiny");
+        const arte = data.sprites?.other?.["official-artwork"] || {};
+        const home = data.sprites?.other?.home || {};
+        const urlPoster = shiny ? (arte.front_shiny || arte.front_default) : arte.front_default;
+        const urlPixel  = shiny ? (data.sprites?.front_shiny || data.sprites?.front_default) : data.sprites?.front_default;
+        const urlHome   = shiny ? (home.front_shiny || home.front_default) : home.front_default;
+        // Sprites animados (GIF) de Pokémon Showdown
+        const urlAnimado = `https://play.pokemonshowdown.com/sprites/ani${shiny ? "-shiny" : ""}/${data.name}.gif`;
 
-        let url;
-        let esPixelado = (modoImagen === "sprite" || modoImagen === "animado");
-        let esMuyGrande = esPixelado; // el pixel art se puede agrandar más sin verse mal
-
+        // Cadena de planes B. Los Pokémon de juegos en 3D (sobre todo las últimas generaciones)
+        // no tienen sprite pixelado, así que se prueba la siguiente opción hasta que una cargue.
+        const AVISO = "SIN PIXEL ART · JUEGO EN 3D";
+        let candidatos = [];
         if (modoImagen === "animado") {
-            url = (currentVariante === "shiny") ? urlAnimadoShiny : urlAnimado;
+            candidatos = [{ url: urlAnimado, pixel: true }, { url: urlPixel, pixel: true }, { url: urlHome, pixel: false, aviso: AVISO }, { url: urlPoster, pixel: false, aviso: AVISO }];
         } else if (modoImagen === "sprite") {
-            url = (currentVariante === "shiny") ? (urlSpritePxShiny || urlSpritePx) : urlSpritePx;
+            candidatos = [{ url: urlPixel, pixel: true }, { url: urlHome, pixel: false, aviso: AVISO }, { url: urlPoster, pixel: false, aviso: AVISO }];
         } else {
-            url = (currentVariante === "shiny") ? (urlPosterShiny || urlPoster) : urlPoster;
+            candidatos = [{ url: urlPoster, pixel: false }, { url: urlHome, pixel: false }];
         }
+        candidatos = candidatos.filter(c => !!c.url);
+        candidatos.push({ url: `/assets-main/sprites/${data.id}.png`, pixel: false });
 
         let img2D = document.createElement("img");
         img2D.id = "poke-img";
-        img2D.src = url || urlPoster || `/assets-main/sprites/${data.id}.png`;
+        let idxCandidato = 0;
+        const mostrarCandidato = () => {
+            const c = candidatos[idxCandidato];
+            // OJO: usamos width/height (no solo max-*), porque max-width/max-height solo ponen un TOPE
+            // y no agrandan una imagen pequeña (sprites de 96x96px) aunque sobre espacio en el recuadro.
+            const tamano = c.pixel ? "92%" : "85%";
+            img2D.style = `width:${tamano}; height:${tamano}; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); image-rendering:${c.pixel ? "pixelated" : "auto"};`;
+            const avisoViejo = box.querySelector("#aviso-sprite");
+            if (avisoViejo) avisoViejo.remove();
+            if (c.aviso) {
+                const av = document.createElement("div");
+                av.id = "aviso-sprite";
+                av.textContent = c.aviso;
+                av.style = "position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:6px; color:#000; font-family:'Press Start 2P'; opacity:0.7; pointer-events:none;";
+                box.appendChild(av);
+            }
+            img2D.src = c.url;
+        };
         img2D.onerror = function() {
-            if (modoImagen === "animado") {
-                // Si no existe versión animada para este Pokémon, caemos al sprite estático
-                this.onerror = () => {
-                    this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M2 12h20'/></svg>";
-                };
-                this.src = (currentVariante === "shiny") ? (urlSpritePxShiny || urlSpritePx) : urlSpritePx;
-            } else {
+            if (idxCandidato < candidatos.length - 1) { idxCandidato++; mostrarCandidato(); }
+            else {
+                this.onerror = null;
                 this.src = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2'><circle cx='12' cy='12' r='10'/><path d='M2 12h20'/></svg>";
             }
         };
-        // OJO: usamos width/height (no solo max-*), porque max-width/max-height
-        // solo ponen un TOPE y no agrandan una imagen pequeña (sprites de 96x96px)
-        // aunque sobre espacio de sobra en el recuadro.
-        let tamano = esMuyGrande ? "92%" : "85%";
-        img2D.style = `width:${tamano}; height:${tamano}; object-fit:contain; display:block; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); ${esPixelado ? 'image-rendering:pixelated;' : ''}`;
+        mostrarCandidato();
         box.appendChild(img2D);
     }
 };
@@ -1185,112 +1320,15 @@ window.inicializarVisorBlender3D = function(container, pokemonId) {
             if(cargando) cargando.remove();
             if (currentPokemonId !== pokemonId || !modo3DActivo) return;
             
-            currentModel = gltf.scene;
-
-            // Si el modelo trae animaciones (idle, etc.) las reproducimos en bucle
-            // en vez de forzar pose() — eso era lo que lo dejaba "colgando" raro.
-            if (mainMixer) { mainMixer.stopAllAction(); mainMixer = null; }
-            const clipElegido = elegirClipAnimacion(gltf.animations);
-            if (clipElegido) {
-                mainMixer = new THREE.AnimationMixer(currentModel);
-                mainMixer.clipAction(clipElegido).play();
-                mainClock = new THREE.Clock();
-            }
-
-            // ========================================================
-            // TRATAMIENTO DE COLOR OSCURO Y MATE PROFUNDO
-            // ========================================================
-            currentModel.traverse((child) => {
-                if (child.isSkinnedMesh) {
-                    // SIEMPRE colocamos primero el esqueleto en su pose de reposo completa
-                    // (si no, los huesos que la animación no toca quedan "crudos" y el
-                    // modelo sale estirado/colgando). La animación, si existe, se anima
-                    // encima de esto en cada frame vía el AnimationMixer.
-                    try { child.pose(); } catch(e) { console.warn("Hueso corrupto ignorado"); }
-                }
-                if (child.isMesh && child.material) {
-                    if (child.material.opacity === 0) child.material.opacity = 1;
-                    child.material.transparent = child.material.opacity < 1;
-                    child.material.depthWrite = true;
-                    child.material.side = THREE.DoubleSide; 
-
-                    // Forzamos al material a absorber el color y no reflejar nada de blanco
-                    child.material.roughness = 1.0; 
-                    child.material.metalness = 0.0;  
-                    
-                    if (child.material.clearcoat !== undefined) child.material.clearcoat = 0.0;  
-                    
-                    // Apagamos cualquier auto-iluminación
-                    if (child.material.emissive) {
-                        child.material.emissive.setHex(0x000000); 
-                    }
-                    
-                    // Eliminamos mapas de reflejo extra que causen neblina blanca
-                    if (child.material.metalnessMap) child.material.metalnessMap = null;
-                    if (child.material.roughnessMap) child.material.roughnessMap = null;
-
-                    // Ajuste extra: Si el renderizador soporta codificación de color,
-                    // nos aseguramos de que el mapa de texturas se lea con contraste correcto
-                    if (child.material.map) {
-                        child.material.map.anisotropy = 4;
-                    }
-                }
-            });
-            // ========================================================
-
+            // Modelo preparado SIN pose(), centrado y con la cámara ya calculada (ver prepararModelo3D)
+            const preparado = prepararModelo3D(gltf, camera, 1.15);
+            currentModel = preparado.pivote; // gira sobre su propio centro
+            if (mainMixer) mainMixer.stopAllAction();
+            mainMixer = preparado.mixer;
+            mainClock = new THREE.Clock();
             scene.add(currentModel);
-
-            let box = new THREE.Box3();
-            let tieneGeometriaReal = false;
-
-            try {
-                currentModel.updateMatrixWorld(true);
-                currentModel.traverse((child) => {
-                    if (child.isMesh && child.geometry) {
-                        try {
-                            if (!child.geometry.boundingBox) {
-                                child.geometry.computeBoundingBox();
-                            }
-                            let mBox = child.geometry.boundingBox.clone();
-                            mBox.applyMatrix4(child.matrixWorld);
-                            if (!isNaN(mBox.min.x) && isFinite(mBox.min.x) && (mBox.max.x - mBox.min.x > 0.0001)) {
-                                box.union(mBox);
-                                tieneGeometriaReal = true;
-                            }
-                        } catch(errGeom) {}
-                    }
-                });
-            } catch(e) { tieneGeometriaReal = false; }
-
-            if (!tieneGeometriaReal || box.isEmpty() || isNaN(box.min.x) || !isFinite(box.min.x)) {
-                box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.2, 1.2, 1.2));
-            }
-
-            let size = box.getSize(new THREE.Vector3());
-            let center = box.getCenter(new THREE.Vector3());
-            camera.lookAt(center);
-
-            // El modelo solo gira sobre el eje Y (vertical), así que:
-            // - la altura (size.y) NO cambia nunca al girar -> se ajusta directo
-            // - el "ancho" que se ve SÍ cambia entre size.x y size.z según el ángulo,
-            //   así que usamos el caso peor: la diagonal del rectángulo X-Z (radio horizontal)
-            let radioHorizontal = 0.5 * Math.sqrt(size.x * size.x + size.z * size.z) || 0.6;
-            let alturaMedia = (size.y / 2) || 0.6;
-
-            let fovVerticalRad = camera.fov * (Math.PI / 180);
-            let fovHorizontalRad = 2 * Math.atan(Math.tan(fovVerticalRad / 2) * camera.aspect);
-
-            let distV = alturaMedia / Math.tan(fovVerticalRad / 2);
-            let distH = radioHorizontal / Math.tan(fovHorizontalRad / 2);
-
-            let distanciaCamara = Math.max(distV, distH) * 1.2; // 20% de margen
-
-            if (distanciaCamara < 0.1 || isNaN(distanciaCamara) || !isFinite(distanciaCamara)) {
-                distanciaCamara = 2.5;
-            }
-
-            camera.position.set(center.x, center.y, center.z + distanciaCamara);
-            camera.lookAt(center);
+            camera.position.set(0, 0, preparado.distancia);
+            camera.lookAt(0, 0, 0);
 
         }, () => {
             if(cargando) cargando.remove();
@@ -1445,72 +1483,17 @@ window.inicializarVisorModal3D = function(container, pokemonId) {
         if (currentPokemonId !== pokemonId) return; // el usuario ya cambió de pokémon
         cargandoTxt.remove();
 
-        modalModel = gltf.scene;
-
-        if (modalMixer) { modalMixer.stopAllAction(); modalMixer = null; }
-        const clipElegidoModal = elegirClipAnimacion(gltf.animations);
-        if (clipElegidoModal) {
-            modalMixer = new THREE.AnimationMixer(modalModel);
-            modalMixer.clipAction(clipElegidoModal).play();
-            modalClock = new THREE.Clock();
-        }
-
-        modalModel.traverse((child) => {
-            if (child.isSkinnedMesh) { try { child.pose(); } catch (e) {} }
-            if (child.isMesh && child.material) {
-                if (child.material.opacity === 0) child.material.opacity = 1;
-                child.material.transparent = child.material.opacity < 1;
-                child.material.depthWrite = true;
-                child.material.side = THREE.DoubleSide;
-                child.material.roughness = 1.0;
-                child.material.metalness = 0.0;
-                if (child.material.clearcoat !== undefined) child.material.clearcoat = 0.0;
-                if (child.material.emissive) child.material.emissive.setHex(0x000000);
-                if (child.material.map) child.material.map.anisotropy = 4;
-            }
-        });
-
+        const preparadoM = prepararModelo3D(gltf, modalCamera, 1.3);
+        modalModel = preparadoM.pivote;
+        if (modalMixer) modalMixer.stopAllAction();
+        modalMixer = preparadoM.mixer;
+        modalClock = new THREE.Clock();
         modalScene.add(modalModel);
 
-        let box = new THREE.Box3();
-        let tieneGeometriaReal = false;
-        modalModel.updateMatrixWorld(true);
-        modalModel.traverse((child) => {
-            if (child.isMesh && child.geometry) {
-                try {
-                    if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
-                    let mBox = child.geometry.boundingBox.clone();
-                    mBox.applyMatrix4(child.matrixWorld);
-                    if (!isNaN(mBox.min.x) && isFinite(mBox.min.x) && (mBox.max.x - mBox.min.x > 0.0001)) {
-                        box.union(mBox);
-                        tieneGeometriaReal = true;
-                    }
-                } catch (e) {}
-            }
-        });
-        if (!tieneGeometriaReal || box.isEmpty()) {
-            box.setFromCenterAndSize(new THREE.Vector3(0, 0, 0), new THREE.Vector3(1.2, 1.2, 1.2));
-        }
-
-        let size = box.getSize(new THREE.Vector3());
-        let center = box.getCenter(new THREE.Vector3());
-        modalCentroModelo = center;
-
-        let radioHorizontalModal = 0.5 * Math.sqrt(size.x * size.x + size.z * size.z) || 0.6;
-        let alturaMediaModal = (size.y / 2) || 0.6;
-
-        let fovVerticalModal = modalCamera.fov * (Math.PI / 180);
-        let fovHorizontalModal = 2 * Math.atan(Math.tan(fovVerticalModal / 2) * modalCamera.aspect);
-
-        let distVModal = alturaMediaModal / Math.tan(fovVerticalModal / 2);
-        let distHModal = radioHorizontalModal / Math.tan(fovHorizontalModal / 2);
-
-        // Un pelín más alejado que en la miniatura para dejar margen al hacer zoom in
-        modalDistanciaBase = Math.max(distVModal, distHModal) * 1.35;
-        if (!isFinite(modalDistanciaBase) || modalDistanciaBase < 0.1) modalDistanciaBase = 3;
-
-        modalCamera.position.set(center.x, center.y, center.z + modalDistanciaBase);
-        modalCamera.lookAt(center);
+        modalCentroModelo = new THREE.Vector3(0, 0, 0);
+        modalDistanciaBase = preparadoM.distancia;
+        modalCamera.position.set(0, 0, modalDistanciaBase);
+        modalCamera.lookAt(0, 0, 0);
 
     }, () => {
         cargandoTxt.innerHTML = "NO HAY MODELO 3D<br>DISPONIBLE";
@@ -1593,4 +1576,195 @@ window.cambiarModoImagen = function(modo) {
     if (window.currentPokemonDataStorage && window.currentPokemonDataStorage.id === currentPokemonId) {
         window.manejarVisualizacionMedia(window.currentPokemonDataStorage);
     }
+};
+
+// =========================================================================
+// FILTROS COMBINABLES: TIPO + GENERACIÓN + ATAQUE
+// Se SUMAN (no se pisan): por ejemplo "tipo Tierra" + "Gen 1" + "Terremoto"
+// muestra solo los Pokémon que cumplen las tres cosas a la vez.
+// =========================================================================
+
+const filtros = { gen: null, tipo: null, ataque: null }; // ataque = { slug, nombre }
+const cacheIdsTipo = {};
+const cacheIdsAtaque = {};
+let listaNavegacion = null; // ids de los resultados actuales: las flechas ◄ ► recorren SOLO esos
+let tokenFiltros = 0;       // evita que una respuesta lenta pise a otra más reciente
+
+const hayFiltros = () => !!(filtros.gen || filtros.tipo || filtros.ataque);
+const soloGeneracion = () => !!filtros.gen && !filtros.tipo && !filtros.ataque;
+
+function limpiarFiltros() { filtros.gen = null; filtros.tipo = null; filtros.ataque = null; listaNavegacion = null; }
+
+async function idsDeTipo(tipo) {
+    if (!cacheIdsTipo[tipo]) {
+        const res = await fetch(`https://pokeapi.co/api/v2/type/${tipo}`);
+        if (!res.ok) throw new Error("tipo " + tipo);
+        const data = await res.json();
+        cacheIdsTipo[tipo] = new Set(data.pokemon.map(p => idDesdeUrl(p.pokemon.url)).filter(id => !isNaN(id) && id <= 1025));
+    }
+    return cacheIdsTipo[tipo];
+}
+
+async function idsDeAtaque(slug) {
+    if (!cacheIdsAtaque[slug]) {
+        const res = await fetch(`https://pokeapi.co/api/v2/move/${slug}`);
+        if (!res.ok) throw new Error("ataque " + slug);
+        const data = await res.json();
+        cacheIdsAtaque[slug] = new Set(data.learned_by_pokemon.map(p => idDesdeUrl(p.url)).filter(id => !isNaN(id) && id <= 1025));
+    }
+    return cacheIdsAtaque[slug];
+}
+
+async function calcularIdsFiltrados() {
+    let ids;
+    if (filtros.gen) {
+        const r = rangosGeneracionesPokedex[filtros.gen];
+        ids = []; for (let id = r.start; id <= r.end; id++) ids.push(id);
+    } else {
+        ids = []; for (let id = 1; id <= 1025; id++) ids.push(id);
+    }
+    const [setTipo, setAtaque] = await Promise.all([
+        filtros.tipo ? idsDeTipo(filtros.tipo) : null,
+        filtros.ataque ? idsDeAtaque(filtros.ataque.slug) : null
+    ]);
+    if (setTipo) ids = ids.filter(id => setTipo.has(id));
+    if (setAtaque) ids = ids.filter(id => setAtaque.has(id));
+    return ids;
+}
+
+// Quita un filtro y vuelve a dibujar lo que corresponda
+function refrescarVistaFiltros() {
+    if (!hayFiltros()) { window.mostrarTodasLasGeneraciones(); return; }
+    if (soloGeneracion()) { listaNavegacion = null; seleccionarGenOriginal(filtros.gen); return; }
+    aplicarFiltrosCombinados();
+}
+
+function pintarBarraFiltros() {
+    const barra = document.getElementById("barra-filtros");
+    if (!barra) return;
+    barra.innerHTML = "";
+    const chips = [];
+    if (filtros.gen) chips.push({ txt: `GEN ${filtros.gen} · ${rangosGeneracionesPokedex[filtros.gen].region.toUpperCase()}`, quitar: () => { filtros.gen = null; } });
+    if (filtros.tipo) chips.push({ txt: `TIPO: ${traduccionTipos[filtros.tipo] || filtros.tipo.toUpperCase()}`, color: typeColors[filtros.tipo], quitar: () => { filtros.tipo = null; } });
+    if (filtros.ataque) chips.push({ txt: `ATAQUE: ${filtros.ataque.nombre.toUpperCase()}`, quitar: () => { filtros.ataque = null; } });
+
+    chips.forEach(c => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "chip-filtro";
+        if (c.color) { chip.style.background = c.color; chip.style.color = "#fff"; chip.style.textShadow = "1px 1px 0 #000"; }
+        chip.textContent = c.txt + "  ✕";
+        chip.title = "Quitar este filtro";
+        chip.onclick = () => { c.quitar(); refrescarVistaFiltros(); };
+        barra.appendChild(chip);
+    });
+    if (chips.length > 1) {
+        const limpiar = document.createElement("button");
+        limpiar.type = "button";
+        limpiar.className = "chip-filtro chip-limpiar";
+        limpiar.textContent = "LIMPIAR TODO";
+        limpiar.onclick = () => window.mostrarTodasLasGeneraciones();
+        barra.appendChild(limpiar);
+    }
+}
+
+async function aplicarFiltrosCombinados() {
+    const zona = document.getElementById("dynamic-zone");
+    if (!zona) return;
+    const searchInput = document.getElementById("poke-search");
+    if (searchInput) searchInput.value = "";
+    bloqueadoPorBuscador = true;
+    vistaActual = "lista";
+    conmutarLayoutEntorno("lista");
+
+    zona.innerHTML = `
+        <div class="retro-gen-layout">
+            <div class="black-info-box"><h2 id="titulo-filtros">FILTRANDO...</h2></div>
+            <div id="barra-filtros" class="barra-filtros"></div>
+            <div id="grid-pokes-3x3" class="grid-gens-3x3"><p style="font-size:8px;padding:10px;grid-column:1/-1;">CARGANDO...</p></div>
+        </div>`;
+    pintarBarraFiltros();
+
+    const miToken = ++tokenFiltros;
+    let ids;
+    try {
+        ids = await calcularIdsFiltrados();
+    } catch (e) {
+        if (miToken !== tokenFiltros) return;
+        const g = document.getElementById("grid-pokes-3x3");
+        if (g) g.innerHTML = `<p style="font-size:8px;color:red;padding:10px;grid-column:1/-1;">ERROR CARGANDO LOS FILTROS. COMPRUEBA LA CONEXIÓN.</p>`;
+        return;
+    }
+    if (miToken !== tokenFiltros) return; // ya hay una búsqueda más nueva
+
+    listaNavegacion = ids;
+    const titulo = document.getElementById("titulo-filtros");
+    if (titulo) titulo.textContent = `RESULTADOS (${ids.length})`;
+
+    const grid = document.getElementById("grid-pokes-3x3");
+    if (!grid) return;
+    grid.innerHTML = "";
+    if (ids.length === 0) {
+        grid.innerHTML = `<p style="font-size:8px;color:#000;padding:10px;grid-column:1/-1;line-height:1.8;">NINGÚN POKÉMON CUMPLE TODOS LOS FILTROS A LA VEZ.<br>QUITA ALGUNO PULSANDO SU ✕.</p>`;
+        return;
+    }
+    const nombrePorId = new Map(pokedexNombresGlobales.map(p => [p.id, p.name]));
+    const frag = document.createDocumentFragment();
+    ids.forEach(id => {
+        const tarjeta = document.createElement("div");
+        tarjeta.className = "item-poke-minimal";
+        tarjeta.onclick = () => { bloqueadoPorBuscador = false; window.cargarPokemonData(id); };
+        tarjeta.innerHTML = `<span class="poke-num">#${formatPaddedId(id)}</span><span class="poke-name">${nombrePorId.get(id) || "#" + id}</span>`;
+        frag.appendChild(tarjeta);
+    });
+    grid.appendChild(frag);
+}
+
+// ---- Los botones existentes pasan a usar los filtros combinables ----
+const seleccionarGenOriginal = window.seleccionarGenFiltro;   // vista de generación "bonita" de siempre
+const mostrarTodasOriginal = window.mostrarTodasLasGeneraciones;
+const toggleVistaListaOriginal = window.toggleVistaLista;
+const cambiarPokemonOriginal = window.cambiarPokemon;
+
+window.seleccionarGenFiltro = function(numGen) {
+    const gensBox = document.getElementById("gens-box");
+    if (gensBox) gensBox.classList.add("collapsed");
+    if (numGen === 'all') { window.mostrarTodasLasGeneraciones(); return; }
+    filtros.gen = parseInt(numGen, 10);
+    refrescarVistaFiltros();
+};
+
+window.mostrarTodasLasGeneraciones = function() {
+    limpiarFiltros();
+    mostrarTodasOriginal();
+};
+
+window.filtrarPorTipo = function(tipoIngles) {
+    const tiposBox = document.getElementById("tipos-box");
+    if (tiposBox) tiposBox.classList.add("collapsed");
+    filtros.tipo = tipoIngles;
+    aplicarFiltrosCombinados();
+};
+
+window.filtrarPorAtaque = function(slug, nombre) {
+    filtros.ataque = { slug, nombre };
+    window.cerrarModalAtaques();
+    aplicarFiltrosCombinados();
+};
+
+// "VOLVER" en la ficha te devuelve a TUS resultados filtrados, no a la lista general
+window.toggleVistaLista = function() {
+    if (hayFiltros() && !soloGeneracion()) aplicarFiltrosCombinados();
+    else toggleVistaListaOriginal();
+};
+
+// Con filtros activos, ◄ ► pasan solo por los Pokémon que cumplen los filtros
+window.cambiarPokemon = function(direccion) {
+    if (!hayFiltros() || soloGeneracion() || !listaNavegacion || listaNavegacion.length === 0) {
+        return cambiarPokemonOriginal(direccion);
+    }
+    const n = listaNavegacion.length;
+    const i = listaNavegacion.indexOf(currentPokemonId);
+    const destino = i === -1 ? listaNavegacion[direccion > 0 ? 0 : n - 1] : listaNavegacion[(i + direccion + n) % n];
+    return window.cargarPokemonData(destino);
 };

@@ -179,18 +179,18 @@ html, body {
 
 .loading-energias-row {
     display: flex;
-    gap: 12px;
+    gap: 10px;
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    max-width: 90%;
+    max-width: min(90%, 540px); /* 9 por fila: 18 energías en 2 filas */
 }
 
 /* Cada círculo se apaga y se ilumina en cadena, de izquierda a derecha, en bucle.
    El ciclo dura 2.7s (9 círculos x 0.3s) y cada uno empieza con un retraso según su posición (--i). */
 .energia-circulo {
-    width: 44px;
-    height: 44px;
+    width: 46px;
+    height: 46px;
     border-radius: 50%;
     background-color: var(--c);
     border: 3px solid #fff;
@@ -201,7 +201,7 @@ html, body {
     opacity: 0.25;
     transform: scale(0.85);
     animation: energia-ilumina 2.7s infinite;
-    animation-delay: calc(var(--i) * 0.3s);
+    animation-delay: calc(var(--i) * 0.15s);
 }
 
 @keyframes energia-ilumina {
@@ -1185,3 +1185,19 @@ button[onclick*="cambiarPokemon"]:active {
 .texto-parpadeante {
     animation: parpadeoRetro 1.2s infinite !important;
 }
+
+/* ---------- Filtros combinables ---------- */
+.barra-filtros { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 4px; }
+.chip-filtro {
+    font-family: 'Press Start 2P', monospace; font-size: 0.5rem; padding: 7px 9px;
+    background: #ffcc00; color: #000; border: 3px solid #000; box-shadow: 2px 2px 0 #000; cursor: pointer;
+}
+.chip-filtro:hover { filter: brightness(1.12); }
+.chip-limpiar { background: #000; color: #fff; }
+
+.btn-filtrar-ataque {
+    width: 100%; margin: 4px 0 12px; padding: 10px 8px; cursor: pointer;
+    font-family: 'Press Start 2P', monospace; font-size: 0.5rem; line-height: 1.6;
+    background: #ffcc00; color: #000; border: 3px solid #000; box-shadow: 2px 2px 0 #000;
+}
+.btn-filtrar-ataque:hover { filter: brightness(1.12); }

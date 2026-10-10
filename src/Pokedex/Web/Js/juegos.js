@@ -109,28 +109,34 @@ function precargar(url) {
     });
 }
 
+async function precargarPrimera(urls) {
+    let ultimo = new Error("sin imágenes");
+    for (const u of urls) {
+        try { return await precargar(u); } catch (e) { ultimo = e; }
+    }
+    throw ultimo;
+}
+
 // ---------- estado ----------
 const params = new URLSearchParams(location.search);
 let modoId = params.get("modo") || "clasico";
+if (modoId === "infinito") modoId = "random"; // enlaces antiguos
 let dificultad = "facil";
-let infinito = { vidas: 3, score: 0, gameOver: false };
+let ultimoNombre = ""; // el Pokémon de la ronda anterior
 const ronda = { cargando: false, finalizada: true, intentos: 0, probados: new Set(), cfg: null, modo: null, objetivo: null, zona: null };
 
-const vidasIniciales = () => (dificultad === "facil" ? 3 : 1);
 const claveRacha = () => `racha_${modoId}_${dificultad}`;
 const claveMejor = () => `mejor_${modoId}_${dificultad}`;
-const rachaActual = () => (modoId === "infinito" ? infinito.score : leerNum(claveRacha()));
+const rachaActual = () => leerNum(claveRacha());
 
 function setRacha(v) {
-    if (modoId === "infinito") infinito.score = v;
-    else guardarStr(claveRacha(), v);
+    guardarStr(claveRacha(), v);
     if (v > leerNum(claveMejor())) guardarStr(claveMejor(), v);
     pintarMarcador();
 }
 function pintarMarcador() {
     $("racha").textContent = rachaActual();
     $("mejor-racha").textContent = leerNum(claveMejor());
-    $("vidas").textContent = infinito.vidas;
 }
 
 // =========================================================================
@@ -243,14 +249,17 @@ modos.descripcion = {
 
         r.zona.innerHTML = `<div class="desc-card"><p>“${texto}”</p><div id="desc-extras" class="desc-extras"></div></div>`;
     },
-    alIntentar(r, intento, acierto) {
-        if (!acierto && r.cfg.pistasExtra && r.extraIdx < r.extras.length) {
-            const d = document.createElement("div");
-            d.textContent = "💡 " + r.extras[r.extraIdx++];
-            $("desc-extras").appendChild(d);
-        }
-    }
+    alIntentar(r, intento, acierto) { destaparPistaExtra(r, acierto); }
 };
+
+// Cada fallo destapa una pista más (solo en los modos/dificultades que lo permiten)
+function destaparPistaExtra(r, acierto) {
+    if (!acierto && r.cfg.pistasExtra && r.extraIdx < r.extras.length) {
+        const d = document.createElement("div");
+        d.textContent = "💡 " + r.extras[r.extraIdx++];
+        $("desc-extras").appendChild(d);
+    }
+}
 
 // ---------- ZOOM ----------
 modos.zoom = {
@@ -278,47 +287,62 @@ modos.zoom = {
     }
 };
 
-// ---------- CARD (carta con datos que se van desvelando) ----------
+// ---------- CARD (carta REAL del juego de cartas coleccionables, borrosa y con el nombre tapado) ----------
+// Cartas de TCGdex (api.tcgdex.net, gratuita y sin clave). Cada fallo la aclara un poco,
+// pero el nombre sigue tapado hasta el final.
+const cacheCartas = {};
+function tokensNombre(t) { return String(t).toLowerCase().split(/\s+/).filter(Boolean); }
+// ¿El nombre de la carta contiene el nombre del Pokémon como palabras completas?
+// ("Blaine's Charizard" y "Pikachu V" sí; "Mewtwo" NO vale para "Mew")
+function esCartaDe(nombreCarta, nombrePoke) {
+    const c = tokensNombre(nombreCarta), n = tokensNombre(nombrePoke);
+    if (!n.length || c.length < n.length) return false;
+    for (let i = 0; i + n.length <= c.length; i++) {
+        if (n.every((w, j) => c[i + j] === w)) return true;
+    }
+    return false;
+}
+function buscarCartas(nombre) {
+    if (!cacheCartas[nombre]) {
+        cacheCartas[nombre] = fetch(`https://api.tcgdex.net/v2/en/cards?name=${encodeURIComponent(nombre)}`)
+            .then(r => { if (!r.ok) throw new Error("tcgdex"); return r.json(); })
+            .then(lista => lista.filter(c => c && c.image && esCartaDe(c.name, nombre)));
+        cacheCartas[nombre].catch(() => { delete cacheCartas[nombre]; });
+    }
+    return cacheCartas[nombre];
+}
+
 modos.card = {
     titulo: "CARD",
+    desenfoque: { facil: [14, 11, 8.5, 6.5, 4.5, 3], dificil: [16, 9, 5] },
     dificultades: { facil: { intentos: 6, sugerencias: true }, dificil: { intentos: 3, sugerencias: false } },
-    async iniciar(r) {
-        const [p, esp] = await Promise.all([getPoke(r.objetivo.id), getEsp(r.objetivo.id)]);
-        await cargarTipos(r.objetivo);
-        const genus = (esp.genera.find(g => g.language.name === "es") || {}).genus || "Desconocida";
-        const nombresStat = { hp: "PS", attack: "ATQ", defense: "DEF", "special-attack": "ATQ.ESP", "special-defense": "DEF.ESP", speed: "VEL" };
-        const bonito = (s) => s.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-
-        const pistas = {
-            gen:   { t: "GENERACIÓN", v: `Gen ${r.objetivo.gen} · ${r.objetivo.region}` },
-            tipo:  { t: "TIPO", v: r.objetivo.tipos.map(nombreTipo).join(" / "), color: colorTipo(r.objetivo.tipos[0] || "") },
-            cat:   { t: "CATEGORÍA", v: genus },
-            medidas: { t: "ALTURA / PESO", v: `${p.height / 10} m · ${p.weight / 10} kg` },
-            habil: { t: "HABILIDADES", v: p.abilities.map(a => bonito(a.ability.name)).join(", ") },
-            stats: { t: "ESTADÍSTICAS", v: p.stats.map(s => `${nombresStat[s.stat.name] || s.stat.name} ${s.base_stat}`).join(" · ") }
-        };
-        const orden = dificultad === "facil"
-            ? ["gen", "tipo", "cat", "medidas", "habil", "stats"]
-            : ["stats", "habil", "medidas"];
-        r.pistasCard = orden.map(k => pistas[k]);
-        r.reveladas = 1;
-        r.zona.innerHTML = `<div class="tcg-card" id="tcg-card"></div>`;
-        modos.card.pintar(r);
+    aplicar(r) {
+        const niv = modos.card.desenfoque[dificultad];
+        const px = niv[Math.min(r.nivel, niv.length - 1)];
+        const img = $("carta-img");
+        if (img) img.style.filter = `blur(${px}px)`;
     },
-    pintar(r) {
-        const filas = r.pistasCard.map((c, i) => i < r.reveladas
-            ? `<div class="tcg-fila"><span class="tcg-label">${c.t}</span><span class="tcg-valor">${c.v}</span></div>`
-            : `<div class="tcg-fila oculta"><span class="tcg-label">${c.t}</span><span class="tcg-valor">???</span></div>`).join("");
-        const conTipo = r.pistasCard.slice(0, r.reveladas).find(c => c.color);
-        const card = $("tcg-card");
-        card.style.setProperty("--tc", conTipo ? conTipo.color : "#c9a227");
-        card.innerHTML = `
-            <div class="tcg-head"><span>???</span><span>CARTA SECRETA</span></div>
-            <div class="tcg-arte">❓</div>
-            <div class="tcg-cuerpo">${filas}</div>`;
+    async iniciar(r) {
+        const cartas = await buscarCartas(r.objetivo.nombre);
+        if (!cartas.length) throw new Error("sin cartas de " + r.objetivo.nombre);
+        const carta = azar(cartas);
+        const url = await precargarPrimera([`${carta.image}/high.webp`, `${carta.image}/high.png`, `${carta.image}/low.webp`]);
+        r.nivel = 0;
+        const px = modos.card.desenfoque[dificultad][0];
+        r.zona.innerHTML = `
+            <p class="ayuda-modo">¿De qué Pokémon es esta carta? Cada fallo la aclara un poco.</p>
+            <div class="carta-wrap" id="carta-wrap">
+                <img id="carta-img" src="${url}" alt="Carta secreta" style="filter:blur(${px}px)">
+                <div class="carta-tapa" id="carta-tapa">???</div>
+            </div>`;
     },
     alIntentar(r, intento, acierto) {
-        if (!acierto && r.reveladas < r.pistasCard.length) { r.reveladas++; modos.card.pintar(r); }
+        if (!acierto) { r.nivel++; modos.card.aplicar(r); }
+    },
+    revelar(r) {
+        const img = $("carta-img"), tapa = $("carta-tapa");
+        if (img) img.style.filter = "none";
+        if (tapa) tapa.classList.add("hidden");
     }
 };
 
@@ -423,13 +447,45 @@ modos.peso = {
     }
 };
 
-// ---------- INFINITO (rondas aleatorias de otros modos hasta quedarte sin vidas) ----------
-modos.infinito = {
-    titulo: "INFINITO",
-    dificultades: { facil: {}, dificil: {} },
-    pool: ["silueta", "zoom", "descripcion", "card", "anagrama", "tipo", "peso"]
+// ---------- ESTADÍSTICAS: adivina el Pokémon por sus estadísticas base ----------
+modos.stats = {
+    titulo: "ESTADÍSTICAS",
+    dificultades: {
+        facil: { intentos: 4, sugerencias: true, pistasExtra: true },
+        dificil: { intentos: 2, sugerencias: false, pistasExtra: false }
+    },
+    async iniciar(r) {
+        const p = await getPoke(r.objetivo.id);
+        await cargarTipos(r.objetivo);
+        const nombres = { hp: "PS", attack: "ATAQUE", defense: "DEFENSA", "special-attack": "AT.ESP", "special-defense": "DEF.ESP", speed: "VELOCIDAD" };
+        const color = (v) => v < 50 ? "#d9534f" : v < 80 ? "#e8a33d" : v < 110 ? "#d8c93a" : v < 140 ? "#5cb85c" : "#2fa3c7";
+        const total = p.stats.reduce((a, s) => a + s.base_stat, 0);
+        const barras = p.stats.map(s => `
+            <div class="stat-fila">
+                <span class="stat-nombre">${nombres[s.stat.name] || s.stat.name}</span>
+                <div class="stat-barra"><div class="stat-relleno" style="width:${Math.min(100, s.base_stat / 255 * 100)}%; background:${color(s.base_stat)}"></div></div>
+                <span class="stat-valor">${s.base_stat}</span>
+            </div>`).join("");
+        r.extras = [
+            `Tipo: ${r.objetivo.tipos.map(nombreTipo).join(" / ")}`,
+            `Generación ${r.objetivo.gen} (${r.objetivo.region})`,
+            `Mide ${p.height / 10} m y pesa ${p.weight / 10} kg`
+        ];
+        r.extraIdx = 0;
+        r.zona.innerHTML = `
+            <p class="ayuda-modo">Estas son las estadísticas base de un Pokémon. ¿Cuál es?</p>
+            <div class="stats-card">${barras}<div class="stat-total">TOTAL: ${total}</div></div>
+            <div id="desc-extras" class="desc-extras"></div>`;
+    },
+    alIntentar(r, intento, acierto) { destaparPistaExtra(r, acierto); }
 };
 
+// ---------- RANDOM (cada ronda es de un modo distinto, elegido al azar) ----------
+modos.random = {
+    titulo: "RANDOM",
+    dificultades: { facil: {}, dificil: {} },
+    pool: ["clasico", "silueta", "descripcion", "zoom", "card", "anagrama", "tipo", "peso", "stats"]
+};
 // =========================================================================
 // MOTOR
 // =========================================================================
@@ -466,12 +522,12 @@ async function nuevaRonda() {
     $("intentos-info").textContent = "";
     limpiarSugerencias();
 
-    const clave = modoId === "infinito" ? azar(modos.infinito.pool) : modoId;
+    const clave = modoId === "random" ? azar(modos.random.pool) : modoId;
     ronda.modo = modos[clave];
     ronda.modoKey = clave;
-    const base = ronda.modo.dificultades[dificultad];
-    ronda.cfg = modoId === "infinito" ? Object.assign({}, base, { intentos: dificultad === "facil" ? 2 : 1 }) : base;
-    $("subtitulo-modo").textContent = modoId === "infinito" ? ronda.modo.titulo : "";
+    ronda.cfg = ronda.modo.dificultades[dificultad];
+    $("subtitulo-modo").textContent = modoId === "random" ? "▶ " + ronda.modo.titulo : "";
+    $("anterior").textContent = ultimoNombre ? `El Pokémon anterior era ${ultimoNombre}` : "";
 
     let ok = false;
     for (let t = 0; t < 6 && !ok; t++) {
@@ -569,25 +625,17 @@ function finalizar(acierto) {
     else mostrarRevelado(ronda);
 
     const nombre = `${ronda.objetivo.nombre} #${pad3(ronda.objetivo.id)}`;
+    ultimoNombre = ronda.objetivo.nombre;
     if (acierto) {
         setRacha(rachaActual() + 1);
         mensaje(`¡CORRECTO! Es ${nombre}`, "correcto");
     } else {
-        if (modoId !== "infinito") setRacha(0);
+        setRacha(0);
         mensaje(`Era ${nombre}`, "incorrecto");
     }
 
-    if (modoId === "infinito" && !acierto) {
-        infinito.vidas--;
-        pintarMarcador();
-        if (infinito.vidas <= 0) {
-            infinito.gameOver = true;
-            mensaje(`¡FIN DE LA PARTIDA! Era ${nombre} · Aciertos: ${infinito.score}`, "incorrecto");
-        }
-    }
-
     $("intentos-info").textContent = "";
-    $("btn-siguiente").textContent = infinito.gameOver ? "NUEVA PARTIDA ▶" : "SIGUIENTE ▶";
+    $("btn-siguiente").textContent = "SIGUIENTE ▶";
     $("btn-siguiente").classList.remove("hidden");
 }
 
@@ -614,10 +662,6 @@ function rendirse() {
 }
 
 function siguiente() {
-    if (infinito.gameOver) {
-        infinito = { vidas: vidasIniciales(), score: 0, gameOver: false };
-        pintarMarcador();
-    }
     nuevaRonda();
 }
 
@@ -627,7 +671,7 @@ function cambiarDificultad(d) {
     guardarStr(`dif_${modoId}`, d);
     $("btn-facil").classList.toggle("active", d === "facil");
     $("btn-dificil").classList.toggle("active", d === "dificil");
-    if (modoId === "infinito") infinito = { vidas: vidasIniciales(), score: 0, gameOver: false };
+    ultimoNombre = "";
     pintarMarcador(); // muestra la racha de ESTA dificultad (la otra se conserva guardada)
     nuevaRonda();
 }
@@ -642,11 +686,9 @@ document.addEventListener("DOMContentLoaded", () => {
     construirLista();
 
     dificultad = leerStr(`dif_${modoId}`) === "dificil" ? "dificil" : "facil";
-    infinito.vidas = vidasIniciales();
 
     $("titulo-juego").textContent = modos[modoId].titulo;
     document.title = "Pokémon - " + modos[modoId].titulo;
-    $("vidas-box").classList.toggle("hidden", modoId !== "infinito");
     $("btn-facil").classList.toggle("active", dificultad === "facil");
     $("btn-dificil").classList.toggle("active", dificultad === "dificil");
     pintarMarcador();
