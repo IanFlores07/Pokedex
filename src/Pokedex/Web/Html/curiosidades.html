@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon - Curiosidades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../Css/curiosidades.css">
+</head>
+<body>
+    <div class="burbujas" aria-hidden="true">
+        <span style="--x:3%; --t:34px; --d:24s; --r:-20s"></span>
+        <span style="--x:8%; --t:26px; --d:28s; --r:-3s"></span>
+        <span style="--x:17%; --t:70px; --d:14s; --r:-16s"></span>
+        <span style="--x:23%; --t:26px; --d:14s; --r:-13s"></span>
+        <span style="--x:32%; --t:26px; --d:17s; --r:-2s"></span>
+        <span style="--x:40%; --t:56px; --d:14s; --r:-18s"></span>
+        <span style="--x:43%; --t:34px; --d:28s; --r:-1s"></span>
+        <span style="--x:54%; --t:70px; --d:24s; --r:-1s"></span>
+        <span style="--x:58%; --t:26px; --d:28s; --r:-4s"></span>
+        <span style="--x:66%; --t:56px; --d:17s; --r:-17s"></span>
+        <span style="--x:71%; --t:70px; --d:20s; --r:-17s"></span>
+        <span style="--x:84%; --t:34px; --d:14s; --r:-18s"></span>
+        <span style="--x:89%; --t:34px; --d:20s; --r:-3s"></span>
+        <span style="--x:97%; --t:26px; --d:28s; --r:-1s"></span>
+    </div>
+
+    <div class="cur-wrapper">
+        <header>
+            <h1 class="pixel-logo">CURIOSI<span>DADES</span></h1>
+            <p class="subtitle">DATOS REALES SACADOS DE LOS JUEGOS</p>
+        </header>
+
+        <nav class="pestanas">
+            <button type="button" id="tab-dia" class="pestana active">☀️ CURIOSIDAD DEL DÍA</button>
+            <button type="button" id="tab-elegir" class="pestana">🔎 ELEGIR POKÉMON</button>
+        </nav>
+
+        <section id="panel-dia" class="panel">
+            <div class="fecha-hoy" id="fecha-hoy"></div>
+        </section>
+
+        <section id="panel-elegir" class="panel hidden">
+            <form id="form-buscar" autocomplete="off">
+                <input type="text" id="buscar" placeholder="NOMBRE (EN INGLÉS) O Nº..." autocomplete="off">
+                <button type="submit" class="btn-ver">VER</button>
+                <button type="button" id="btn-azar" class="btn-azar">🎲 AL AZAR</button>
+            </form>
+            <div id="sugerencias" class="sugerencias hidden"></div>
+        </section>
+
+        <div id="estado" class="estado">CARGANDO CURIOSIDADES...</div>
+
+        <section id="resultado" class="hidden">
+            <div id="ficha" class="ficha"></div>
+            <div id="lista-curiosidades"></div>
+        </section>
+
+        <button class="btn-volver" onclick="location.href='index.html'">◄ VOLVER AL INICIO</button>
+    </div>
+
+    <script src="../Js/datos.js"></script>
+    <script src="../Js/curiosidades.js"></script>
+</body>
+</html>

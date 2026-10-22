@@ -177,37 +177,42 @@ html, body {
 }
 .loading-overlay-pokedex.hidden { display: none !important; }
 
-.loading-energias-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    max-width: min(90%, 540px); /* 9 por fila: 18 energías en 2 filas */
-}
+/* ---------- Pantalla de carga: las 18 energías giran alrededor de "CARGANDO..." ---------- */
+.loading-orbita { position: relative; width: 380px; height: 380px; }
+@media (max-width: 420px) { .loading-orbita { transform: scale(0.78); } }
 
-/* Cada círculo se apaga y se ilumina en cadena, de izquierda a derecha, en bucle.
-   El ciclo dura 2.7s (9 círculos x 0.3s) y cada uno empieza con un retraso según su posición (--i). */
-.energia-circulo {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background-color: var(--c);
-    border: 3px solid #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    opacity: 0.25;
-    transform: scale(0.85);
-    animation: energia-ilumina 2.7s infinite;
-    animation-delay: calc(var(--i) * 0.15s);
-}
+.orbita-anillo { position: absolute; inset: 0; animation: orbita-girar 16s linear infinite; }
+@keyframes orbita-girar { to { transform: rotate(360deg); } }
 
-@keyframes energia-ilumina {
-    0%        { opacity: 1;    transform: scale(1.12); box-shadow: 0 0 16px 4px var(--c); }
-    11%       { opacity: 1;    transform: scale(1.12); box-shadow: 0 0 16px 4px var(--c); }
-    22%, 100% { opacity: 0.25; transform: scale(0.85); box-shadow: none; }
+/* Cada energía se coloca en su sitio del círculo (20° entre una y otra) */
+.energia-orbita {
+    position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px;
+    transform: rotate(calc(var(--i) * 20deg)) translateY(-150px);
+}
+/* La "cara" gira al revés que el anillo para que el símbolo siempre se vea derecho */
+.energia-cara {
+    --a: calc(var(--i) * 20deg);
+    width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box;
+    background: var(--c); border: 3px solid #fff; box-shadow: 0 0 12px var(--c);
+    display: flex; align-items: center; justify-content: center;
+    animation: orbita-contra 16s linear infinite, orbita-brillo 1.8s ease-in-out infinite alternate;
+    animation-delay: 0s, calc(var(--i) * 0.1s);
+    opacity: 0; transition: opacity 0.35s; /* oculta hasta saber si hay imagen real o hay que usar el icono de reserva */
+}
+.energia-cara.lista { opacity: 1; }
+@keyframes orbita-contra {
+    from { transform: rotate(calc(var(--a) * -1)); }
+    to   { transform: rotate(calc(var(--a) * -1 - 360deg)); }
+}
+@keyframes orbita-brillo { from { filter: brightness(0.92); } to { filter: brightness(1.12); } }
+
+/* Con la imagen real de la energía: sin círculo de color, solo el símbolo */
+.energia-cara.con-imagen { background: transparent; border: none; box-shadow: none; }
+.energia-cara.con-imagen img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.55)); }
+
+.loading-centro {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; text-align: center;
 }
 
 .loading-texto {

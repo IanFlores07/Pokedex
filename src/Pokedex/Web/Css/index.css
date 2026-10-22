@@ -1,117 +1,82 @@
-/* --- CONFIGURACIÓN DE COLORES Y VARIABLES --- */
-:root {
-    --pkm-red: #cc0000;       /* Rojo Charizard */
-    --pkm-blue: #3355ff;      /* Azul logo */
-    --pkm-yellow: #ffcb05;    /* Amarillo logo */
-    --pkm-green: #4dad5b;     /* Verde Esmeralda */
-    --pkm-purple: #9b59b6;    /* Morado Master Ball */
-    
-    --bg-dark: #1a1a1a;       /* Fondo oscuro */
-    --border-color: #313131;  /* Borde pixel */
-    
-    --font-pixel: 'Press Start 2P', cursive;
-}
+* { box-sizing: border-box; }
 
-/* --- ESTILO BASE --- */
 body {
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg-dark);
-    color: white;
-    font-family: var(--font-pixel), sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    image-rendering: pixelated;
+    margin: 0; min-height: 100vh; color: #fff; overflow-x: hidden;
+    font-family: 'Press Start 2P', cursive;
+    display: flex; justify-content: center; align-items: center;
+    background: linear-gradient(135deg, #14163d, #3d1a63, #0e3a66, #14163d);
+    background-size: 400% 400%; animation: fondo-mover 20s ease infinite;
 }
 
-.menu-wrapper {
-    width: 90%;
-    max-width: 500px;
-    text-align: center;
-    padding: 20px;
-}
+.menu-wrapper { position: relative; z-index: 1; width: 92%; max-width: 580px; text-align: center; padding: 24px 0; }
 
-/* --- DECORACIÓN POKÉDEX --- */
+/* Luz de la Pokédex que late */
 .pokedex-light {
-    width: 50px;
-    height: 50px;
-    background: radial-gradient(circle, #00f2ff, #0055ff);
-    border: 5px solid white;
-    border-radius: 50%;
-    margin: 0 auto 30px;
-    box-shadow: 0 0 20px #0055ff;
+    width: 58px; height: 58px; margin: 0 auto 22px; border-radius: 50%; border: 5px solid #fff;
+    background: radial-gradient(circle at 35% 30%, #bff, #08f 55%, #03a);
+    animation: luz 2s ease-in-out infinite;
+}
+@keyframes luz {
+    0%, 100% { box-shadow: 0 0 14px #08f, 0 0 32px #04f; transform: scale(1); }
+    50%      { box-shadow: 0 0 30px #5df, 0 0 64px #08f; transform: scale(1.08); }
 }
 
-/* --- LOGO ESTILO POKÉMON --- */
 .pixel-logo {
-    font-size: 1.8rem;
-    color: var(--pkm-yellow);
-    text-shadow: 
-        -3px -3px 0 var(--pkm-blue),  
-         3px -3px 0 var(--pkm-blue),
-        -3px  3px 0 var(--pkm-blue),
-         3px  3px 0 var(--pkm-blue),
-         5px  5px 0 rgba(0,0,0,0.5);
-    margin-bottom: 5px;
-    letter-spacing: 2px;
+    font-size: clamp(1.6rem, 7vw, 2.5rem); margin: 0; letter-spacing: 2px; color: #ffcb05;
+    text-shadow: -3px -3px 0 #3355ff, 3px -3px 0 #3355ff, -3px 3px 0 #3355ff, 3px 3px 0 #3355ff, 6px 6px 0 rgba(0,0,0,0.5);
+    animation: logo-bote 2.6s ease-in-out infinite;
 }
+.pixel-logo span { color: #ff4d6d; display: inline-block; animation: arcoiris 5s linear infinite; }
+@keyframes logo-bote { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes arcoiris { to { filter: hue-rotate(360deg); } }
 
-.subtitle {
-    font-size: 0.6rem;
-    color: #888;
-    margin-bottom: 40px;
-    letter-spacing: 1px;
-}
+.subtitle { font-size: 0.55rem; color: #cfd6ff; margin: 14px 0 30px; letter-spacing: 1px; animation: parpadeo 1.6s steps(2) infinite; }
+@keyframes parpadeo { 50% { opacity: 0.55; } }
 
-/* --- BOTONES (CARDS) --- */
-.games-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
+.games-grid { display: flex; flex-direction: column; gap: 22px; }
 
 .game-card {
-    width: 100%;
-    padding: 25px 20px;
-    border: 4px solid var(--border-color);
-    border-radius: 0; /* Estilo retro cuadrado */
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: var(--font-pixel);
-    font-size: 0.7rem;
-    color: white;
-    transition: 0.1s;
-    box-shadow: inset -5px -5px 0px rgba(0,0,0,0.4);
-    text-transform: uppercase;
+    position: relative; overflow: hidden; width: 100%; padding: 26px 22px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left;
+    border: 4px solid #000; border-radius: 16px; color: #fff; font-family: 'Press Start 2P', cursive; text-transform: uppercase;
+    box-shadow: 0 7px 0 rgba(0,0,0,0.45), inset 0 -7px 0 rgba(0,0,0,0.22);
+    transition: transform 0.15s, filter 0.15s;
+    animation: carta-entrada 0.65s backwards; animation-delay: calc(var(--n) * 140ms);
 }
+.card-texto { display: flex; flex-direction: column; gap: 10px; }
+.card-texto b { font-size: 0.85rem; text-shadow: 2px 2px 0 rgba(0,0,0,0.4); }
+.card-texto small { font-size: 0.45rem; opacity: 0.85; line-height: 1.5; }
+.game-icon { font-size: 2.3rem; animation: flotar 2.4s ease-in-out infinite; filter: drop-shadow(2px 3px 0 rgba(0,0,0,0.35)); }
+.game-card:nth-child(2) .game-icon { animation-delay: 0.4s; }
+.game-card:nth-child(3) .game-icon { animation-delay: 0.8s; }
 
-/* Colores de botones */
-.red { background-color: var(--pkm-red); }
-.green { background-color: var(--pkm-green); }
-.purple { background-color: var(--pkm-purple); }
-
-.game-card:hover {
-    transform: scale(1.03);
-    filter: brightness(1.2);
+/* Brillo que cruza la tarjeta al pasar el ratón */
+.game-card::before {
+    content: ""; position: absolute; inset: 0; transform: translateX(-130%);
+    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); transition: transform 0.7s;
 }
+.game-card:hover::before { transform: translateX(130%); }
+.game-card:hover { transform: translateY(-5px) scale(1.03) rotate(-0.6deg); filter: brightness(1.12); }
+.game-card:active { transform: translateY(4px) scale(0.98); box-shadow: 0 2px 0 rgba(0,0,0,0.45), inset 0 -3px 0 rgba(0,0,0,0.22); }
 
-.game-card:active {
-    transform: scale(0.97);
-    box-shadow: inset 5px 5px 0px rgba(0,0,0,0.5);
-}
+.red    { background: linear-gradient(135deg, #ff5a5a, #b3001b); }
+.green  { background: linear-gradient(135deg, #43e08a, #0e8a4a); }
+.purple { background: linear-gradient(135deg, #b873ff, #5b1fb3); }
 
-.game-icon {
-    font-size: 1.2rem;
-}
+@keyframes carta-entrada { from { opacity: 0; transform: translateY(34px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes flotar { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-7px) rotate(9deg); } }
 
-/* --- FOOTER --- */
-.main-footer {
-    margin-top: 50px;
-    font-size: 0.5rem;
-    color: #555;
-    line-height: 1.8;
+/* ---------- Fondo animado compartido: degradado que se mueve + Poké Balls que suben flotando ---------- */
+@keyframes fondo-mover { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.burbujas { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.burbujas span {
+    position: absolute; bottom: -90px; left: var(--x); width: var(--t); height: var(--t); border-radius: 50%;
+    border: 3px solid #111; background: linear-gradient(#e63946 0 46%, #111 46% 54%, #f5f5f5 54%);
+    opacity: 0.2; animation: burbuja-subir var(--d) linear infinite; animation-delay: var(--r);
 }
+.burbujas span::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%);
+    border-radius: 50%; background: #fff; border: 3px solid #111;
+}
+@keyframes burbuja-subir { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-125vh) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

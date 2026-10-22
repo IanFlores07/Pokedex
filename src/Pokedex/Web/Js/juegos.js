@@ -132,11 +132,35 @@ const rachaActual = () => leerNum(claveRacha());
 function setRacha(v) {
     guardarStr(claveRacha(), v);
     if (v > leerNum(claveMejor())) guardarStr(claveMejor(), v);
-    pintarMarcador();
+    pintarMarcador(true);
 }
-function pintarMarcador() {
-    $("racha").textContent = rachaActual();
+// Pequeña animación del número cuando cambia (y una llama 🔥 si llevas 3 o más seguidas)
+function pintarMarcador(animar) {
+    const r = rachaActual();
+    $("racha").textContent = r >= 3 ? "🔥 " + r : r;
     $("mejor-racha").textContent = leerNum(claveMejor());
+    if (animar && $("racha").classList) {
+        $("racha").classList.remove("pulso");
+        void ($("racha").offsetWidth);
+        $("racha").classList.add("pulso");
+    }
+}
+
+// Lluvia de confeti al acertar
+function lanzarConfeti() {
+    if (!document.body || !document.body.appendChild || !document.createElement) return;
+    const colores = ["#ff5a6e", "#ffd23d", "#5cff9b", "#4d9bff", "#b873ff", "#ff9a3d", "#3dd6f5"];
+    for (let i = 0; i < 42; i++) {
+        const c = document.createElement("span");
+        c.className = "confeti";
+        c.style.left = Math.random() * 100 + "vw";
+        c.style.background = colores[i % colores.length];
+        c.style.setProperty("--d", (1.2 + Math.random() * 1.1).toFixed(2) + "s");
+        c.style.setProperty("--dx", Math.round(Math.random() * 240 - 120) + "px");
+        c.style.setProperty("--rot", Math.round(Math.random() * 900 - 450) + "deg");
+        document.body.appendChild(c);
+        setTimeout(() => { if (c.remove) c.remove(); }, 2600);
+    }
 }
 
 // =========================================================================
@@ -629,6 +653,7 @@ function finalizar(acierto) {
     if (acierto) {
         setRacha(rachaActual() + 1);
         mensaje(`¡CORRECTO! Es ${nombre}`, "correcto");
+        lanzarConfeti();
     } else {
         setRacha(0);
         mensaje(`Era ${nombre}`, "incorrecto");
@@ -687,6 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     dificultad = leerStr(`dif_${modoId}`) === "dificil" ? "dificil" : "facil";
 
+    if (document.body && document.body.dataset) document.body.dataset.modo = modoId; // da el color propio a cada modo
     $("titulo-juego").textContent = modos[modoId].titulo;
     document.title = "Pokémon - " + modos[modoId].titulo;
     $("btn-facil").classList.toggle("active", dificultad === "facil");

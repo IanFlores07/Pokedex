@@ -201,3 +201,94 @@ body {
     background: var(--borde); color: white; border: none; border-radius: 8px; padding: 14px; cursor: pointer;
 }
 .btn-volver:hover { filter: brightness(1.2); }
+
+
+/* =========================================================================
+   TEMAS POR MODO: cada juego tiene su propio color y animaciones
+   ========================================================================= */
+body { --tema: #4d9bff; --tema2: #1450b3; }
+body[data-modo="clasico"] { --tema: #ff5c6c; --tema2: #b0102b; }
+body[data-modo="silueta"] { --tema: #9d5cff; --tema2: #4b14a8; }
+body[data-modo="descripcion"] { --tema: #4d9bff; --tema2: #1450b3; }
+body[data-modo="zoom"] { --tema: #1fe0b0; --tema2: #0a8a6b; }
+body[data-modo="card"] { --tema: #ffc83d; --tema2: #c27a00; }
+body[data-modo="random"] { --tema: #ff6fd8; --tema2: #4fa3ff; }
+body[data-modo="anagrama"] { --tema: #a6e04a; --tema2: #4d8f10; }
+body[data-modo="tipo"] { --tema: #ff8a3d; --tema2: #c4440a; }
+body[data-modo="peso"] { --tema: #ff6b8b; --tema2: #b3173f; }
+body[data-modo="stats"] { --tema: #3dd6f5; --tema2: #0a78a3; }
+
+body {
+    background: linear-gradient(135deg, #14163d, #3d1a63, #0e3a66, #14163d);
+    background-size: 400% 400%; animation: fondo-mover 20s ease infinite;
+}
+.game-wrapper { position: relative; z-index: 1; }
+/* Resplandor del color del modo en la parte de arriba */
+.fondo-tema { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.32;
+    background: radial-gradient(circle at 50% -10%, var(--tema), transparent 62%), radial-gradient(circle at 90% 100%, var(--tema2), transparent 55%); }
+body[data-modo="random"] .fondo-tema { animation: arcoiris 8s linear infinite; }
+
+.pixel-logo {
+    font-size: 1.15rem; background: linear-gradient(90deg, var(--tema), #fff, var(--tema2)); background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(3px 3px 0 rgba(0,0,0,0.55)); animation: brillo-titulo 4s linear infinite;
+}
+@keyframes brillo-titulo { to { background-position: 200% 0; } }
+@keyframes arcoiris { to { filter: hue-rotate(360deg); } }
+.subtitulo-modo { color: #fff; }
+
+.score-box { border-color: var(--tema); background: rgba(10,12,35,0.7); box-shadow: 0 0 14px -3px var(--tema); }
+.score-box b { display: inline-block; color: #ffd23d; font-size: 0.75rem; }
+.score-box b.pulso { animation: pulso 0.6s; }
+@keyframes pulso { 0% { transform: scale(1); } 40% { transform: scale(1.7) rotate(-6deg); color: #fff; } 100% { transform: scale(1); } }
+
+.btn-dificultad { transition: transform 0.15s, background 0.2s; }
+.btn-dificultad:hover { transform: translateY(-2px); color: #fff; }
+.btn-dificultad.active { background: linear-gradient(135deg, var(--tema), var(--tema2)); border-color: #000; color: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.4); text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+
+.game-screen { background: rgba(14,17,44,0.82); border-color: var(--tema); box-shadow: 0 6px 0 rgba(0,0,0,0.45), 0 0 26px -6px var(--tema); animation: aparece 0.5s backwards; }
+.zona-juego > * { animation: aparece 0.45s backwards; }
+@keyframes aparece { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+#guess-input:focus, #peso-input:focus { border-color: var(--tema); box-shadow: 0 0 12px var(--tema); }
+#guess-form button, .btn-accion { background: linear-gradient(135deg, var(--tema), var(--tema2)); border: 3px solid #000; box-shadow: 0 4px 0 rgba(0,0,0,0.4); text-shadow: 1px 1px 0 rgba(0,0,0,0.45); color: #fff; transition: transform 0.12s; }
+#guess-form button:hover, .btn-accion:hover { transform: translateY(-2px) scale(1.04); filter: brightness(1.1); }
+#guess-form button:active, .btn-accion:active { transform: translateY(3px); box-shadow: none; }
+.sugerencia-item { transition: transform 0.1s, background 0.15s; }
+.sugerencia-item:hover { background: var(--tema); transform: translateY(-2px); }
+
+.btn-hint { background: linear-gradient(135deg, #ffd23d, #ff9a3d); border: 2px solid #000; box-shadow: 0 3px 0 rgba(0,0,0,0.4); transition: transform 0.12s; }
+.btn-hint:hover:not(:disabled) { transform: translateY(-2px) rotate(-1deg); }
+#btn-rendirse { background: linear-gradient(135deg, #ff5a5a, #b3001b); border: 3px solid #000; box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+#btn-siguiente { background: linear-gradient(135deg, #43e08a, #0e8a4a); border: 3px solid #000; box-shadow: 0 4px 0 rgba(0,0,0,0.4); animation: latido 1.2s ease-in-out infinite; }
+@keyframes latido { 50% { transform: scale(1.04); } }
+.action-buttons button:hover:not(:disabled) { filter: brightness(1.12); }
+
+.feedback.correcto { color: #5cff9b; text-shadow: 0 0 10px #1fe07a; animation: pop 0.55s; }
+.feedback.incorrecto { color: #ff6b6b; animation: sacudir 0.45s; }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.25); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes sacudir { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(9px); } 60% { transform: translateX(-6px); } 80% { transform: translateX(4px); } }
+
+.tipo-btn { transition: transform 0.12s, opacity 0.15s; }
+.tipo-btn:hover { opacity: 0.9; transform: translateY(-2px); }
+.btn-volver { background: linear-gradient(135deg, #3a4272, #1f2447); border: 3px solid #000; box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+
+/* Confeti al acertar */
+.confeti { position: fixed; top: -16px; width: 10px; height: 14px; z-index: 9999; pointer-events: none;
+    animation: confeti-caer var(--d) cubic-bezier(0.3, 0.6, 0.6, 1) forwards; }
+@keyframes confeti-caer { to { transform: translate(var(--dx), 108vh) rotate(var(--rot)); opacity: 0.9; } }
+
+/* ---------- Fondo animado compartido: degradado que se mueve + Poké Balls que suben flotando ---------- */
+@keyframes fondo-mover { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.burbujas { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.burbujas span {
+    position: absolute; bottom: -90px; left: var(--x); width: var(--t); height: var(--t); border-radius: 50%;
+    border: 3px solid #111; background: linear-gradient(#e63946 0 46%, #111 46% 54%, #f5f5f5 54%);
+    opacity: 0.2; animation: burbuja-subir var(--d) linear infinite; animation-delay: var(--r);
+}
+.burbujas span::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%);
+    border-radius: 50%; background: #fff; border: 3px solid #111;
+}
+@keyframes burbuja-subir { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-125vh) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

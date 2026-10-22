@@ -8,6 +8,22 @@
     <link rel="stylesheet" href="../Css/menu.css">
 </head>
 <body>
+    <div class="burbujas" aria-hidden="true">
+        <span style="--x:7%; --t:56px; --d:20s; --r:-22s"></span>
+        <span style="--x:11%; --t:44px; --d:14s; --r:-14s"></span>
+        <span style="--x:17%; --t:34px; --d:28s; --r:-3s"></span>
+        <span style="--x:25%; --t:26px; --d:17s; --r:-24s"></span>
+        <span style="--x:31%; --t:34px; --d:17s; --r:-12s"></span>
+        <span style="--x:39%; --t:56px; --d:14s; --r:-5s"></span>
+        <span style="--x:46%; --t:56px; --d:28s; --r:-8s"></span>
+        <span style="--x:51%; --t:56px; --d:28s; --r:-8s"></span>
+        <span style="--x:62%; --t:56px; --d:20s; --r:-21s"></span>
+        <span style="--x:67%; --t:34px; --d:17s; --r:-2s"></span>
+        <span style="--x:72%; --t:34px; --d:17s; --r:-21s"></span>
+        <span style="--x:79%; --t:26px; --d:24s; --r:-18s"></span>
+        <span style="--x:86%; --t:44px; --d:20s; --r:0s"></span>
+        <span style="--x:94%; --t:56px; --d:28s; --r:-11s"></span>
+    </div>
 
     <div class="menu-wrapper">
         <header class="main-header">
@@ -16,46 +32,43 @@
         </header>
 
         <main class="games-grid">
-            <button class="game-card" onclick="location.href='juego.html?modo=clasico'">
-                <span class="game-title">Clásico</span><span class="game-icon">🔴</span>
+            <button class="game-card m-clasico" style="--n:0" onclick="location.href='juego.html?modo=clasico'">
+                <span class="game-icon">🔴</span><span class="game-title">Clásico</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=silueta'">
-                <span class="game-title">Silueta</span><span class="game-icon">👤</span>
+            <button class="game-card m-silueta" style="--n:1" onclick="location.href='juego.html?modo=silueta'">
+                <span class="game-icon">👤</span><span class="game-title">Silueta</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=descripcion'">
-                <span class="game-title">Descripción</span><span class="game-icon">📖</span>
+            <button class="game-card m-descripcion" style="--n:2" onclick="location.href='juego.html?modo=descripcion'">
+                <span class="game-icon">📖</span><span class="game-title">Descripción</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=zoom'">
-                <span class="game-title">Zoom</span><span class="game-icon">🔍</span>
+            <button class="game-card m-zoom" style="--n:3" onclick="location.href='juego.html?modo=zoom'">
+                <span class="game-icon">🔍</span><span class="game-title">Zoom</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=card'">
-                <span class="game-title">Card</span><span class="game-icon">🃏</span>
+            <button class="game-card m-card" style="--n:4" onclick="location.href='juego.html?modo=card'">
+                <span class="game-icon">🃏</span><span class="game-title">Card</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=random'">
-                <span class="game-title">Random</span><span class="game-icon">🎲</span>
+            <button class="game-card m-random" style="--n:5" onclick="location.href='juego.html?modo=random'">
+                <span class="game-icon">🎲</span><span class="game-title">Random</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=anagrama'">
-                <span class="game-title">Anagrama</span><span class="game-icon">🔠</span>
+            <button class="game-card m-anagrama" style="--n:6" onclick="location.href='juego.html?modo=anagrama'">
+                <span class="game-icon">🔠</span><span class="game-title">Anagrama</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=tipo'">
-                <span class="game-title">¿Cuál es su tipo?</span><span class="game-icon">🔥</span>
+            <button class="game-card m-tipo" style="--n:7" onclick="location.href='juego.html?modo=tipo'">
+                <span class="game-icon">🔥</span><span class="game-title">¿Cuál es su tipo?</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=peso'">
-                <span class="game-title">El Peso Justo</span><span class="game-icon">⚖️</span>
+            <button class="game-card m-peso" style="--n:8" onclick="location.href='juego.html?modo=peso'">
+                <span class="game-icon">⚖️</span><span class="game-title">El Peso Justo</span>
             </button>
-            <button class="game-card" onclick="location.href='juego.html?modo=stats'">
-                <span class="game-title">Estadísticas</span><span class="game-icon">📊</span>
+            <button class="game-card m-stats" style="--n:9" onclick="location.href='juego.html?modo=stats'">
+                <span class="game-icon">📊</span><span class="game-title">Estadísticas</span>
             </button>
 
-            <button class="game-card full-width green" onclick="location.href='index.html'">
-                <span class="game-title">VOLVER AL INICIO</span><span class="game-icon">🏠</span>
+            <button class="game-card volver full-width" style="--n:10" onclick="location.href='index.html'">
+                <span class="game-icon">🏠</span><span class="game-title">VOLVER AL INICIO</span>
             </button>
         </main>
 
-        <footer class="main-footer">
-            <p>SELECCIÓN DE PROTOCOLO DE ENTRENAMIENTO</p>
-        </footer>
+        <footer class="main-footer"><p>CADA MODO TIENE DIFICULTAD FÁCIL Y DIFÍCIL, CON SU PROPIA RACHA</p></footer>
     </div>
-
 </body>
 </html>

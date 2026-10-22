@@ -8,46 +8,44 @@
     <link rel="stylesheet" href="../Css/index.css">
 </head>
 <body>
+    <div class="burbujas" aria-hidden="true">
+        <span style="--x:5%; --t:34px; --d:24s; --r:-21s"></span>
+        <span style="--x:12%; --t:56px; --d:20s; --r:-14s"></span>
+        <span style="--x:19%; --t:56px; --d:20s; --r:-9s"></span>
+        <span style="--x:23%; --t:34px; --d:17s; --r:-2s"></span>
+        <span style="--x:33%; --t:44px; --d:28s; --r:-15s"></span>
+        <span style="--x:38%; --t:56px; --d:20s; --r:-19s"></span>
+        <span style="--x:43%; --t:26px; --d:28s; --r:-13s"></span>
+        <span style="--x:51%; --t:44px; --d:17s; --r:-15s"></span>
+        <span style="--x:60%; --t:26px; --d:14s; --r:-24s"></span>
+        <span style="--x:68%; --t:70px; --d:20s; --r:-10s"></span>
+        <span style="--x:76%; --t:44px; --d:28s; --r:-15s"></span>
+        <span style="--x:82%; --t:56px; --d:14s; --r:-2s"></span>
+        <span style="--x:87%; --t:56px; --d:14s; --r:-1s"></span>
+        <span style="--x:98%; --t:44px; --d:28s; --r:-21s"></span>
+    </div>
 
     <div class="menu-wrapper">
-    <div class="pokedex-light"></div>
-    <h1 class="pixel-logo">POKÉ<span>DUELO</span></h1>
+        <div class="pokedex-light"></div>
+        <h1 class="pixel-logo">POKÉ<span>DUELO</span></h1>
+        <p class="subtitle">¿QUÉ QUIERES HACER HOY?</p>
 
         <main class="games-grid">
-            <button class="game-card red" onclick="location.href='pokedex.html'">
-                <span>1 - VER POKÉDEX</span>
-                <span>📕</span>
+            <button class="game-card red" style="--n:0" onclick="location.href='pokedex.html'">
+                <span class="card-texto"><b>1 - VER POKÉDEX</b><small>1025 POKÉMON · 3D · ATAQUES</small></span>
+                <span class="game-icon">📕</span>
             </button>
 
-            <button class="game-card green" onclick="location.href='menu.html'">
-                <span>2 - MINIJUEGOS</span>
-                <span>🎮</span>
+            <button class="game-card green" style="--n:1" onclick="location.href='menu.html'">
+                <span class="card-texto"><b>2 - MINIJUEGOS</b><small>10 MODOS · 2 DIFICULTADES</small></span>
+                <span class="game-icon">🎮</span>
             </button>
 
-            <button class="game-card purple" onclick="location.href='curiosidades.html'">
-                <span>3 - CURIOSIDADES</span>
-                <span>✨</span>
+            <button class="game-card purple" style="--n:2" onclick="location.href='curiosidades.html'">
+                <span class="card-texto"><b>3 - CURIOSIDADES</b><small>UNA NUEVA CADA DÍA</small></span>
+                <span class="game-icon">✨</span>
             </button>
         </main>
     </div>
-
-<script>
-    function abrirCuriosidades() {
-        alert("¡Próximamente! Datos curiosos sobre el mundo Pokémon.");
-        // Cuando tengas la página lista, usa: 
-        // window.location.href = 'Html/curiosidades.html';
-    }
-</script>
-
-    <script>
-        function navegar(destino) {
-            if (destino === 'minijuegos') {
-                window.location.href = "Html/menu.html"; 
-            } else if (destino === 'pokedex') {
-                alert("Abriendo la Pokédex...");
-                // window.location.href = "Html/pokedex_lista.html";
-            }
-        }
-    </script>
 </body>
 </html>

@@ -588,10 +588,41 @@ window.cerrarModalAtaques = function() {
     document.getElementById("modal-ataques")?.classList.remove("active");
 };
 
+// =========================================================================
+// ENERGÍAS REALES de la pantalla de carga.
+// Pon las imágenes en la carpeta  Img/energias/  con estos nombres (png, webp o svg):
+//   acero, agua, bicho, dragon, electrico, fantasma, fuego, hada, hielo,
+//   lucha, normal, planta, psiquico, roca, siniestro, tierra, veneno, volador
+// Las que no estén se sustituyen por un icono de reserva, así nunca queda un hueco.
+// =========================================================================
+const RUTA_ENERGIAS = "../Img/energias/";
+function cargarEnergiasReales() {
+    document.querySelectorAll(".energia-orbita").forEach((el) => {
+        const cara = el.querySelector(".energia-cara");
+        const tipo = el.dataset.tipo;
+        if (!cara || !tipo) return;
+        const extensiones = ["png", "webp", "svg"];
+        const probar = (i) => {
+            if (i >= extensiones.length) { cara.classList.add("lista"); return; } // sin imagen: se ve el icono de reserva
+            const img = new Image();
+            img.onload = () => {
+                cara.innerHTML = "";
+                img.alt = el.title || tipo;
+                cara.appendChild(img);
+                cara.classList.add("con-imagen", "lista");
+            };
+            img.onerror = () => probar(i + 1);
+            img.src = RUTA_ENERGIAS + tipo + "." + extensiones[i];
+        };
+        probar(0);
+    });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     window.mostrarPantallaInicialOcupandoTodo();
     precargarCatalogoBuscar();
     construirCajaTipos();
+    cargarEnergiasReales();
     precargarPokedexCompleta(); // pantalla de carga con Wooper/Goomy hasta tener todo cacheado
 
     const btnGenToggle = document.getElementById("btn-toggle-gens");

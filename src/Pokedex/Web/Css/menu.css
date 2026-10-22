@@ -1,37 +1,82 @@
-:root {
-    --bg-dark: #101525;
-    --card-blue: #3b5cca;
-    --card-red: #cc3b3b;
-    --card-green: #2fa357;
-    --font-pixel: 'Press Start 2P', cursive;
-}
+* { box-sizing: border-box; }
 
 body {
-    margin: 0; background-color: var(--bg-dark);
-    color: white; font-family: var(--font-pixel);
-    display: flex; justify-content: center; align-items: center; min-height: 100vh;
+    margin: 0; min-height: 100vh; color: #fff; overflow-x: hidden;
+    font-family: 'Press Start 2P', cursive;
+    display: flex; justify-content: center; align-items: flex-start;
+    background: linear-gradient(135deg, #14163d, #3d1a63, #0e3a66, #14163d);
+    background-size: 400% 400%; animation: fondo-mover 20s ease infinite;
 }
 
-.menu-wrapper { width: 90%; max-width: 600px; text-align: center; }
+.menu-wrapper { position: relative; z-index: 1; width: 94%; max-width: 680px; text-align: center; padding: 28px 0 40px; }
 
-.pixel-logo { font-size: 1.2rem; margin-bottom: 30px; }
-
-.games-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 15px;
+.pixel-logo {
+    font-size: clamp(1.1rem, 5vw, 1.7rem); margin: 0 0 8px; color: #ffcb05; line-height: 1.5;
+    text-shadow: -3px -3px 0 #3355ff, 3px -3px 0 #3355ff, -3px 3px 0 #3355ff, 3px 3px 0 #3355ff, 5px 5px 0 rgba(0,0,0,0.5);
+    animation: logo-bote 2.6s ease-in-out infinite;
 }
+.pixel-logo span { color: #ff4d6d; display: inline-block; animation: arcoiris 5s linear infinite; }
+@keyframes logo-bote { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes arcoiris { to { filter: hue-rotate(360deg); } }
+.subtitle { font-size: 0.55rem; color: #cfd6ff; margin: 6px 0 24px; animation: parpadeo 1.6s steps(2) infinite; }
+@keyframes parpadeo { 50% { opacity: 0.55; } }
+
+.games-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 
 .game-card {
-    background-color: var(--card-blue);
-    border: none; border-radius: 12px; padding: 20px;
-    color: white; font-family: var(--font-pixel); font-size: 0.6rem;
-    display: flex; justify-content: space-between; align-items: center;
-    cursor: pointer; transition: 0.2s;
+    --c1: #3b5cca; --c2: #1d2f7a;
+    position: relative; overflow: hidden; padding: 20px 10px; min-height: 124px; cursor: pointer;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 12px; text-align: center;
+    border: 4px solid #000; border-radius: 16px; color: #fff; font-family: 'Press Start 2P', cursive;
+    background: linear-gradient(135deg, var(--c1), var(--c2));
+    box-shadow: 0 6px 0 rgba(0,0,0,0.45), inset 0 -6px 0 rgba(0,0,0,0.22);
+    transition: transform 0.15s, filter 0.15s;
+    animation: carta-entrada 0.6s backwards; animation-delay: calc(var(--n) * 70ms);
 }
+.game-icon { font-size: 2.1rem; filter: drop-shadow(2px 3px 0 rgba(0,0,0,0.35)); animation: flotar 2.6s ease-in-out infinite; animation-delay: calc(var(--n) * 0.25s); }
+.game-title { font-size: 0.6rem; line-height: 1.6; text-shadow: 2px 2px 0 rgba(0,0,0,0.4); }
 
-.red { background-color: var(--card-red); }
-.green { background-color: var(--card-green); }
+/* Brillo que cruza la tarjeta al pasar el ratón */
+.game-card::before {
+    content: ""; position: absolute; inset: 0; transform: translateX(-130%);
+    background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.4) 50%, transparent 65%); transition: transform 0.7s;
+}
+.game-card:hover::before { transform: translateX(130%); }
+.game-card:hover { transform: translateY(-5px) scale(1.04) rotate(-1deg); filter: brightness(1.12); }
+.game-card:hover .game-icon { animation-duration: 0.6s; }
+.game-card:active { transform: translateY(4px) scale(0.97); box-shadow: 0 2px 0 rgba(0,0,0,0.45); }
+
+/* Un color propio para cada modo */
+.m-clasico { --c1: #ff5c6c; --c2: #b0102b; }
+.m-silueta { --c1: #9d5cff; --c2: #4b14a8; }
+.m-descripcion { --c1: #4d9bff; --c2: #1450b3; }
+.m-zoom { --c1: #1fe0b0; --c2: #0a8a6b; }
+.m-card { --c1: #ffc83d; --c2: #c27a00; }
+.m-random { --c1: #ff6fd8; --c2: #4fa3ff; }
+.m-anagrama { --c1: #a6e04a; --c2: #4d8f10; }
+.m-tipo { --c1: #ff8a3d; --c2: #c4440a; }
+.m-peso { --c1: #ff6b8b; --c2: #b3173f; }
+.m-stats { --c1: #3dd6f5; --c2: #0a78a3; }
+.m-random { background: linear-gradient(135deg, #ff6fd8, #ffb347, #4fe3a1, #4fa3ff); background-size: 300% 300%; animation: carta-entrada 0.6s backwards, fondo-mover 6s ease infinite; animation-delay: calc(var(--n) * 70ms), 0s; }
+.volver { --c1: #43e08a; --c2: #0e8a4a; flex-direction: row; min-height: 72px; }
 .full-width { grid-column: span 2; }
 
-.game-card:hover { transform: translateY(-5px); filter: brightness(1.1); }
+.main-footer { margin-top: 30px; font-size: 0.45rem; color: #8f99d6; line-height: 1.9; }
+
+@keyframes carta-entrada { from { opacity: 0; transform: translateY(28px) scale(0.88); } to { opacity: 1; transform: none; } }
+@keyframes flotar { 0%, 100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-6px) rotate(8deg); } }
+
+/* ---------- Fondo animado compartido: degradado que se mueve + Poké Balls que suben flotando ---------- */
+@keyframes fondo-mover { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.burbujas { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.burbujas span {
+    position: absolute; bottom: -90px; left: var(--x); width: var(--t); height: var(--t); border-radius: 50%;
+    border: 3px solid #111; background: linear-gradient(#e63946 0 46%, #111 46% 54%, #f5f5f5 54%);
+    opacity: 0.2; animation: burbuja-subir var(--d) linear infinite; animation-delay: var(--r);
+}
+.burbujas span::after {
+    content: ""; position: absolute; top: 50%; left: 50%; width: 30%; height: 30%; transform: translate(-50%, -50%);
+    border-radius: 50%; background: #fff; border: 3px solid #111;
+}
+@keyframes burbuja-subir { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-125vh) rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
