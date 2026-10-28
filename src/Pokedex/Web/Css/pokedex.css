@@ -178,7 +178,7 @@ html, body {
 .loading-overlay-pokedex.hidden { display: none !important; }
 
 /* ---------- Pantalla de carga: las 18 energías giran alrededor de "CARGANDO..." ---------- */
-.loading-orbita { position: relative; width: 380px; height: 380px; }
+.loading-orbita { position: relative; width: 400px; height: 400px; }
 @media (max-width: 420px) { .loading-orbita { transform: scale(0.78); } }
 
 .orbita-anillo { position: absolute; inset: 0; animation: orbita-girar 16s linear infinite; }
@@ -186,12 +186,14 @@ html, body {
 
 /* Cada energía se coloca en su sitio del círculo (20° entre una y otra) */
 .energia-orbita {
-    position: absolute; top: 50%; left: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px;
-    transform: rotate(calc(var(--i) * 20deg)) translateY(-150px);
+    position: absolute; top: 50%; left: 50%; width: var(--tam, 50px); height: var(--tam, 50px);
+    margin: calc(var(--tam, 50px) / -2) 0 0 calc(var(--tam, 50px) / -2);
+    /* --n = cuántas energías hay en el anillo (se reparten a partes iguales) */
+    transform: rotate(calc(var(--i) * 360deg / var(--n, 18))) translateY(calc(var(--radio, 150px) * -1));
 }
 /* La "cara" gira al revés que el anillo para que el símbolo siempre se vea derecho */
 .energia-cara {
-    --a: calc(var(--i) * 20deg);
+    --a: calc(var(--i) * 360deg / var(--n, 18));
     width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box;
     background: var(--c); border: 3px solid #fff; box-shadow: 0 0 12px var(--c);
     display: flex; align-items: center; justify-content: center;
